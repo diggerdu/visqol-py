@@ -1,0 +1,91 @@
+[build-system]
+requires = ["setuptools>=45", "wheel", "numpy"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "visqol-py"
+version = "3.3.3"
+description = "Python wrapper for ViSQOL audio quality metrics"
+readme = "README.md"
+authors = [
+    {name = "Google Research (Original)", email = ""},
+    {name = "Community Wrapper", email = ""}
+]
+license = {file = "LICENSE"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Multimedia :: Sound/Audio :: Analysis",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+keywords = ["audio", "quality", "metrics", "visqol", "mos", "speech", "evaluation"]
+requires-python = ">=3.7"
+dependencies = [
+    "numpy>=1.19.0",
+    "scipy>=1.7.0",
+    "librosa>=0.8.0",
+    "soundfile>=0.10.0",
+    "protobuf>=3.19.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "pytest-cov",
+    "black",
+    "isort",
+    "mypy",
+    "flake8",
+]
+tensorflow = [
+    "tensorflow>=2.8.0",
+]
+test = [
+    "pytest>=6.0",
+    "pytest-cov",
+]
+
+[project.urls]
+Homepage = "https://github.com/google/visqol"
+Repository = "https://github.com/your-repo/visqol-py"
+Documentation = "https://github.com/your-repo/visqol-py#readme"
+"Bug Tracker" = "https://github.com/your-repo/visqol-py/issues"
+
+[project.scripts]
+visqol-py = "visqol_py.cli:main"
+
+[tool.setuptools]
+packages = ["visqol_py"]
+
+[tool.setuptools.package-data]
+visqol_py = ["models/*.tflite", "models/*.txt", "data/*.wav"]
+
+[tool.black]
+line-length = 88
+target-version = ["py37", "py38", "py39", "py310", "py311"]
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+
+[tool.mypy]
+python_version = "3.7"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --cov=visqol_py --cov-report=term-missing"
