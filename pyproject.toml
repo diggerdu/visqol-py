@@ -8,8 +8,8 @@ version = "3.3.3"
 description = "Python wrapper for ViSQOL audio quality metrics"
 readme = "README.md"
 authors = [
-    {name = "Google Research (Original)", email = ""},
-    {name = "Community Wrapper", email = ""}
+    {name = "Google Research (Original)"},
+    {name = "Community Wrapper", email = "visqol-py@example.com"}
 ]
 license = {file = "LICENSE"}
 classifiers = [
@@ -55,10 +55,10 @@ test = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/google/visqol"
-Repository = "https://github.com/your-repo/visqol-py"
-Documentation = "https://github.com/your-repo/visqol-py#readme"
-"Bug Tracker" = "https://github.com/your-repo/visqol-py/issues"
+Homepage = "https://github.com/diggerdu/visqol-py"
+Repository = "https://github.com/diggerdu/visqol-py"
+Documentation = "https://github.com/diggerdu/visqol-py#readme"
+"Bug Tracker" = "https://github.com/diggerdu/visqol-py/issues"
 
 [project.scripts]
 visqol-py = "visqol_py.cli:main"
