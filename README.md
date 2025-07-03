@@ -6,6 +6,7 @@ A Python wrapper for Google's ViSQOL (Virtual Speech Quality Objective Listener)
 
 - **Easy Installation**: Install directly with `pip install git+https://github.com/diggerdu/visqol-py.git`
 - **No Bazel Required**: Automatic dependency handling without manual Bazel installation
+- **Native NumPy Support**: Process audio arrays directly without file I/O
 - **Fallback Implementation**: Works even without native ViSQOL compiled binaries
 - **Command Line Interface**: Easy-to-use CLI for batch processing
 - **Python API**: Clean Python interface for integration into your projects
@@ -31,13 +32,24 @@ pip install -e .
 
 ```python
 import visqol_py
+import numpy as np
 
 # Initialize ViSQOL (default: audio mode)
 visqol = visqol_py.ViSQOL()
 
-# Compare two audio files
+# Method 1: Compare audio files
 result = visqol.measure('reference.wav', 'degraded.wav')
 print(f"MOS-LQO Score: {result.moslqo:.3f}")
+
+# Method 2: Compare NumPy arrays directly (no file I/O needed!)
+sample_rate = 48000
+duration = 3.0
+t = np.linspace(0, duration, int(sample_rate * duration))
+reference = np.sin(2 * np.pi * 440 * t) * 0.7  # Clean signal
+degraded = reference + 0.05 * np.random.randn(len(reference))  # Add noise
+
+result = visqol.measure(reference, degraded)
+print(f"Array MOS-LQO: {result.moslqo:.3f}")
 
 # Speech mode
 visqol_speech = visqol_py.ViSQOL(mode=visqol_py.ViSQOLMode.SPEECH)
@@ -129,6 +141,40 @@ Run the built-in unit tests:
 ```bash
 python -m pytest visqol_py/tests/
 ```
+
+## 🔢 Native NumPy Array Support
+
+ViSQOL-Py provides **native support for NumPy arrays**, enabling direct processing without file I/O:
+
+```python
+import numpy as np
+import visqol_py
+
+# Generate test signals
+sample_rate = 48000
+t = np.linspace(0, 3.0, int(sample_rate * 3.0))
+reference = np.sin(2 * np.pi * 440 * t) * 0.7
+degraded = reference + 0.05 * np.random.randn(len(reference))
+
+# Process arrays directly
+visqol = visqol_py.ViSQOL()
+result = visqol.measure(reference, degraded)  # No file I/O needed!
+print(f"MOS-LQO: {result.moslqo:.3f}")
+```
+
+**Benefits:**
+- ⚡ **Faster processing** - no disk I/O overhead
+- 💾 **Memory efficient** - no temporary files
+- 🔄 **Real-time capable** - perfect for live audio processing
+- 🧪 **Research friendly** - ideal for synthetic signal testing
+
+**Use Cases:**
+- Real-time audio quality monitoring
+- Integration with audio processing pipelines
+- Automated testing with synthetic signals
+- Research and development workflows
+
+See [NUMPY_API.md](NUMPY_API.md) for comprehensive examples and [numpy_array_example.py](numpy_array_example.py) for a complete demonstration.
 
 ## Native vs Fallback Implementation
 
