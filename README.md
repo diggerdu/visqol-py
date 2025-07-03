@@ -110,6 +110,26 @@ Then run:
 visqol-py --batch_input_csv input.csv --results_csv output.csv
 ```
 
+## Testing
+
+### Quick Test
+Run the comprehensive test suite to verify installation:
+```bash
+python test_visqol_py.py
+```
+
+### Simple Example
+Try the basic usage example:
+```bash
+python example_usage.py
+```
+
+### Package Tests
+Run the built-in unit tests:
+```bash
+python -m pytest visqol_py/tests/
+```
+
 ## Native vs Fallback Implementation
 
 This wrapper attempts to use the native ViSQOL implementation when available, falling back to an approximation method when not:
