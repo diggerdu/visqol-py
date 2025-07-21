@@ -198,42 +198,6 @@ class TestViSQOLModes:
         assert 1.0 <= result_speech.moslqo <= 5.0
 
 
-class TestViSQOLFallback:
-    """Test fallback implementation."""
-    
-    def test_fallback_similarity_computation(self):
-        """Test fallback similarity computation."""
-        visqol = ViSQOL()
-        
-        # Test the fallback similarity method directly
-        sample_rate = 48000
-        duration = 2.0
-        t = np.linspace(0, duration, int(sample_rate * duration))
-        
-        reference = np.sin(2 * np.pi * 440 * t)
-        degraded = reference + 0.1 * np.random.randn(len(reference))
-        
-        # This should work even without native ViSQOL
-        score = visqol._compute_fallback_similarity(reference, degraded)
-        
-        assert 1.0 <= score <= 5.0
-    
-    def test_fallback_with_different_lengths(self):
-        """Test fallback with different signal lengths."""
-        visqol = ViSQOL()
-        
-        # Create signals of different lengths
-        sample_rate = 48000
-        t1 = np.linspace(0, 1.0, sample_rate)
-        t2 = np.linspace(0, 2.0, 2 * sample_rate)
-        
-        reference = np.sin(2 * np.pi * 440 * t1)
-        degraded = np.sin(2 * np.pi * 440 * t2) + 0.1 * np.random.randn(2 * sample_rate)
-        
-        # Fallback should handle different lengths
-        score = visqol._compute_fallback_similarity(reference, degraded)
-        
-        assert 1.0 <= score <= 5.0
 
 
 if __name__ == "__main__":

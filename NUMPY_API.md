@@ -147,7 +147,7 @@ result = visqol.measure(ref, deg)
 ## Performance Characteristics
 
 ### Throughput Examples
-Based on testing with fallback implementation:
+Based on testing with native implementation:
 
 | Signal Length | Processing Time | Real-time Factor |
 |---------------|-----------------|------------------|

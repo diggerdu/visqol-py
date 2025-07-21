@@ -15,6 +15,7 @@ from pathlib import Path
 from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext
 from setuptools.command.install import install
+from setuptools.command.develop import develop
 import tempfile
 
 
@@ -70,7 +71,66 @@ class ViSQOLInstall(install):
     """Custom install command."""
     
     def run(self):
+        # Build native library before install
+        self._build_native_library()
         install.run(self)
+    
+    def _build_native_library(self):
+        """Build native ViSQOL library."""
+        try:
+            print("🚀 Building native ViSQOL library during installation...")
+            
+            result = subprocess.run([
+                sys.executable, 'build_native.py'
+            ], capture_output=True, text=True, timeout=1800)
+            
+            if result.returncode == 0:
+                print("✅ Native ViSQOL library built successfully!")
+            else:
+                print("❌ Native build failed.")
+                print("Build output:", result.stdout[-500:] if result.stdout else "None")
+                print("Build errors:", result.stderr[-500:] if result.stderr else "None")
+                raise RuntimeError("Native ViSQOL build failed. This package requires native library.")
+                    
+        except subprocess.TimeoutExpired:
+            print("❌ Native build timed out.")
+            raise RuntimeError("Native ViSQOL build timed out. This package requires native library.")
+        except Exception as e:
+            print(f"❌ Could not build native ViSQOL: {e}")
+            raise RuntimeError(f"Native ViSQOL build failed: {e}. This package requires native library.")
+
+
+class ViSQOLDevelop(develop):
+    """Custom develop command."""
+    
+    def run(self):
+        # Build native library before develop
+        self._build_native_library()
+        develop.run(self)
+    
+    def _build_native_library(self):
+        """Build native ViSQOL library."""
+        try:
+            print("🚀 Building native ViSQOL library during development installation...")
+            
+            result = subprocess.run([
+                sys.executable, 'build_native.py'
+            ], capture_output=True, text=True, timeout=1800)
+            
+            if result.returncode == 0:
+                print("✅ Native ViSQOL library built successfully!")
+            else:
+                print("❌ Native build failed.")
+                print("Build output:", result.stdout[-500:] if result.stdout else "None")
+                print("Build errors:", result.stderr[-500:] if result.stderr else "None")
+                raise RuntimeError("Native ViSQOL build failed. This package requires native library.")
+                    
+        except subprocess.TimeoutExpired:
+            print("❌ Native build timed out.")
+            raise RuntimeError("Native ViSQOL build timed out. This package requires native library.")
+        except Exception as e:
+            print(f"❌ Could not build native ViSQOL: {e}")
+            raise RuntimeError(f"Native ViSQOL build failed: {e}. This package requires native library.")
 
 
 setup(
@@ -134,6 +194,9 @@ setup(
     cmdclass={
         "build_ext": ViSQOLBuildExt,
         "install": ViSQOLInstall,
+        "develop": ViSQOLDevelop,
     },
+    # Add a dummy extension to ensure build_ext runs
+    ext_modules=[Extension("visqol_py._dummy", sources=[])],
     zip_safe=False,
 )

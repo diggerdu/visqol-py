@@ -372,9 +372,9 @@ class ViSQOLTester:
                     'score': result.moslqo
                 })
             
-            # Performance should be reasonable (subjective, but under 10x real-time for fallback)
+            # Performance should be reasonable (subjective, depends on native implementation)
             avg_rt_factor = np.mean([r['real_time_factor'] for r in timing_results])
-            performance_good = avg_rt_factor < 10.0  # Fallback implementation may be slower
+            performance_good = avg_rt_factor < 10.0  # Native implementation should be fast
             
             time_list = [f'{r["processing_time"]:.2f}s' for r in timing_results]
             timing_details = f"Avg RT factor: {avg_rt_factor:.2f}x, Times: {time_list}"
