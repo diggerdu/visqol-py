@@ -24,22 +24,22 @@ def _build_native_library():
     """Build native ViSQOL library - shared function."""
     try:
         print("🚀 Building native ViSQOL library...")
+        print("This may take several minutes...")
         
         result = subprocess.run([
             sys.executable, 'build_native.py'
-        ], capture_output=True, text=True, timeout=1800)
+        ], capture_output=False, text=True, timeout=3600)  # Show output in real-time, 1 hour timeout
         
         if result.returncode == 0:
             print("✅ Native ViSQOL library built successfully!")
             return True
         else:
             print("❌ Native build failed.")
-            print("Build output:", result.stdout[-500:] if result.stdout else "None")
-            print("Build errors:", result.stderr[-500:] if result.stderr else "None")
+            print(f"Exit code: {result.returncode}")
             raise RuntimeError("Native ViSQOL build failed. This package requires native library.")
                 
     except subprocess.TimeoutExpired:
-        print("❌ Native build timed out.")
+        print("❌ Native build timed out after 1 hour.")
         raise RuntimeError("Native ViSQOL build timed out. This package requires native library.")
     except Exception as e:
         print(f"❌ Could not build native ViSQOL: {e}")
