@@ -35,9 +35,9 @@ def check_system_requirements():
     return True
 
 
-def install_bazelisk(install_dir):
-    """Install Bazelisk (Bazel launcher)."""
-    print("Installing Bazelisk...", flush=True)
+def install_compatible_bazel(install_dir):
+    """Install compatible Bazel version for ViSQOL."""
+    print("Installing compatible Bazel version...", flush=True)
     
     system = platform.system().lower()
     arch = platform.machine().lower()
@@ -50,28 +50,31 @@ def install_bazelisk(install_dir):
     else:
         raise RuntimeError(f"Unsupported architecture: {arch}")
     
+    # Use Bazel 6.5.0 which is compatible with ViSQOL's dependencies
+    bazel_version = "6.5.0"
+    
     # Determine download URL
     if system == 'linux':
-        url = f"https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-{arch}"
+        url = f"https://github.com/bazelbuild/bazel/releases/download/{bazel_version}/bazel-{bazel_version}-linux-{arch}"
         binary_name = 'bazel'
     elif system == 'darwin':
-        url = f"https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-darwin-{arch}"
+        url = f"https://github.com/bazelbuild/bazel/releases/download/{bazel_version}/bazel-{bazel_version}-darwin-{arch}"
         binary_name = 'bazel'
     elif system == 'windows':
-        url = f"https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-windows-{arch}.exe"
+        url = f"https://github.com/bazelbuild/bazel/releases/download/{bazel_version}/bazel-{bazel_version}-windows-{arch}.exe"
         binary_name = 'bazel.exe'
     else:
         raise RuntimeError(f"Unsupported system: {system}")
     
     bazel_path = os.path.join(install_dir, binary_name)
     
-    print(f"Downloading from: {url}", flush=True)
+    print(f"Downloading Bazel {bazel_version} from: {url}", flush=True)
     urllib.request.urlretrieve(url, bazel_path)
     
     if system != 'windows':
         os.chmod(bazel_path, 0o755)
     
-    print(f"✅ Bazelisk installed to {bazel_path}", flush=True)
+    print(f"✅ Bazel {bazel_version} installed to {bazel_path}", flush=True)
     return bazel_path
 
 
@@ -116,7 +119,7 @@ def build_visqol(visqol_dir, bazel_path):
         
         # First, let's sync external dependencies
         print("🔄 Syncing external dependencies...", flush=True)
-        sync_cmd = [bazel_path, 'sync', '--noenable_bzlmod', '--enable_workspace']
+        sync_cmd = [bazel_path, 'sync']  # Bazel 6 doesn't need bzlmod/workspace flags
         sync_result = subprocess.run(sync_cmd, env=env, timeout=300)
         
         if sync_result.returncode == 0:
@@ -126,7 +129,7 @@ def build_visqol(visqol_dir, bazel_path):
         
         # Now let's check what Bazel targets are available
         print("🔍 Querying available Bazel targets...", flush=True)
-        query_cmd = [bazel_path, 'query', '--noenable_bzlmod', '--enable_workspace', '//...']
+        query_cmd = [bazel_path, 'query', '//...']  # Simple query for Bazel 6
         result = subprocess.run(query_cmd, env=env, capture_output=True, text=True, timeout=60)  # Keep query output captured for parsing
         
         if result.returncode == 0:
@@ -144,14 +147,10 @@ def build_visqol(visqol_dir, bazel_path):
         # Build commands - let's try simpler targets first
         # For Bazel 8+ compatibility, we need to disable bzlmod and force WORKSPACE usage
         build_commands = [
-            # Try to build the python bindings directly with WORKSPACE mode and maximum verbosity
+            # Try to build the python bindings with Bazel 6 compatible flags
             [bazel_path, 'build', '-c', 'opt', 
              '--verbose_failures', 
-             '--noenable_bzlmod', 
-             '--enable_workspace',
              '--subcommands',  # Show all subcommands being executed
-             '--verbose_explanations',  # Show detailed explanations
-             '--sandbox_debug',  # Show sandbox debugging info
              '//python:visqol_lib_py'],
         ]
         
@@ -165,13 +164,13 @@ def build_visqol(visqol_dir, bazel_path):
             if result.returncode != 0:
                 print(f"❌ Build command failed: {' '.join(cmd)}", flush=True)
                 
-                # Try alternative targets with WORKSPACE mode and verbose output
+                # Try alternative targets with Bazel 6 compatible flags
                 alternative_commands = [
-                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '--enable_workspace', '--subcommands', '//python:all'],
-                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '--enable_workspace', '--subcommands', '//:all'],
+                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--subcommands', '//python:all'],
+                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--subcommands', '//:all'],
                     # Also try building specific targets
-                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '--enable_workspace', '--subcommands', '//python:visqol_lib_py.so'],
-                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '--enable_workspace', '--subcommands', '//src:visqol_api'],
+                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--subcommands', '//python:visqol_lib_py.so'],
+                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--subcommands', '//src:visqol_api'],
                 ]
                 
                 success = False
@@ -327,12 +326,10 @@ def main():
     
     with tempfile.TemporaryDirectory() as work_dir:
         try:
-            # Install Bazelisk if Bazel not available
-            if not shutil.which('bazel'):
-                bazel_path = install_bazelisk(work_dir)
-            else:
-                bazel_path = 'bazel'
-                print("✅ Using system Bazel", flush=True)
+            # Always install compatible Bazel version instead of using system Bazel
+            # This avoids version compatibility issues with Bazel 8+
+            print("ℹ️ Installing compatible Bazel version instead of using system Bazel", flush=True)
+            bazel_path = install_compatible_bazel(work_dir)
             
             # Clone and build ViSQOL
             visqol_dir = clone_visqol(work_dir)
