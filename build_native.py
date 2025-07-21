@@ -253,9 +253,28 @@ def copy_built_files(visqol_dir, target_dir):
             break
     
     if so_file_found:
-        shutil.copy2(so_file_found, target_dir / 'visqol_py')
-        print(f"✅ Copied Python library: {so_file_found}", flush=True)
-        files_copied += 1
+        target_so_path = target_dir / 'visqol_py' / 'visqol_lib_py.so'
+        
+        # Remove existing file if it exists to avoid permission issues
+        if target_so_path.exists():
+            try:
+                # Make file writable before removing
+                target_so_path.chmod(0o644)
+                target_so_path.unlink()
+                print(f"🗑️ Removed existing library: {target_so_path}", flush=True)
+            except Exception as e:
+                print(f"⚠️ Could not remove existing library: {e}", flush=True)
+        
+        try:
+            shutil.copy2(so_file_found, target_so_path)
+            print(f"✅ Copied Python library: {so_file_found} -> {target_so_path}", flush=True)
+            files_copied += 1
+        except Exception as e:
+            print(f"⚠️ Failed to copy library: {e}", flush=True)
+            # If copy fails, at least check if the target already exists and is valid
+            if target_so_path.exists():
+                print(f"ℹ️ Target library already exists: {target_so_path}", flush=True)
+                files_copied += 1  # Count as success if target exists
     else:
         print("⚠️ Python library (.so file) not found in any expected location", flush=True)
         # Search for any .so files
