@@ -116,7 +116,7 @@ def build_visqol(visqol_dir, bazel_path):
         
         # First, let's sync external dependencies
         print("🔄 Syncing external dependencies...")
-        sync_cmd = [bazel_path, 'sync', '--noenable_bzlmod']
+        sync_cmd = [bazel_path, 'sync', '--noenable_bzlmod', '--enable_workspace']
         sync_result = subprocess.run(sync_cmd, env=env, capture_output=True, text=True, timeout=300)
         
         if sync_result.returncode == 0:
@@ -128,7 +128,7 @@ def build_visqol(visqol_dir, bazel_path):
         
         # Now let's check what Bazel targets are available
         print("🔍 Querying available Bazel targets...")
-        query_cmd = [bazel_path, 'query', '--noenable_bzlmod', '//...']
+        query_cmd = [bazel_path, 'query', '--noenable_bzlmod', '--enable_workspace', '//...']
         result = subprocess.run(query_cmd, env=env, capture_output=True, text=True, timeout=60)
         
         if result.returncode == 0:
@@ -147,7 +147,7 @@ def build_visqol(visqol_dir, bazel_path):
         # For Bazel 8+ compatibility, we need to disable bzlmod and force WORKSPACE usage
         build_commands = [
             # Try to build the python bindings directly with WORKSPACE mode
-            [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '//python:visqol_lib_py'],
+            [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '--enable_workspace', '//python:visqol_lib_py'],
         ]
         
         for cmd in build_commands:
@@ -163,11 +163,11 @@ def build_visqol(visqol_dir, bazel_path):
                 
                 # Try alternative targets with WORKSPACE mode
                 alternative_commands = [
-                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '//python:all'],
-                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '//:all'],
+                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '--enable_workspace', '//python:all'],
+                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '--enable_workspace', '//:all'],
                     # Also try building specific targets
-                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '//python:visqol_lib_py.so'],
-                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '//src:visqol_api'],
+                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '--enable_workspace', '//python:visqol_lib_py.so'],
+                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '--enable_workspace', '//src:visqol_api'],
                 ]
                 
                 success = False
