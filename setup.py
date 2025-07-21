@@ -36,37 +36,34 @@ class ViSQOLBuildExt(build_ext):
         return False
     
     def _build_from_source(self):
-        """Build ViSQOL from source using system dependencies."""
+        """Build ViSQOL from source using build script."""
         try:
-            # Check for required system dependencies
-            self._check_dependencies()
+            print("Attempting to build native ViSQOL library...")
             
-            # Clone and build the original ViSQOL repository
-            self._build_visqol()
+            # Run the build script
+            import subprocess
+            result = subprocess.run([
+                sys.executable, 'build_native.py'
+            ], capture_output=True, text=True, timeout=1800)  # 30 minute timeout
             
+            if result.returncode == 0:
+                print("✅ Native ViSQOL library built successfully!")
+                print("The package will use native implementation when available.")
+            else:
+                print("⚠️ Native build failed, using fallback implementation.")
+                if result.stdout:
+                    print("Build output:", result.stdout[-500:])  # Last 500 chars
+                if result.stderr:
+                    print("Build errors:", result.stderr[-500:])
+                    
+        except subprocess.TimeoutExpired:
+            print("⚠️ Native build timed out, using fallback implementation.")
         except Exception as e:
-            print(f"Warning: Could not build native ViSQOL: {e}")
-            print("Continuing with fallback implementation.")
-            print("For full compatibility, consider installing the original ViSQOL package.")
+            print(f"⚠️ Could not build native ViSQOL: {e}")
+            print("Using fallback implementation.")
+            
+        print("Package installation will continue with Python fallback implementation.")
     
-    def _check_dependencies(self):
-        """Check for required system dependencies."""
-        # Check for basic build tools
-        required_tools = ['git', 'python3']
-        for tool in required_tools:
-            if not shutil.which(tool):
-                raise RuntimeError(f"Required tool '{tool}' not found in PATH")
-    
-    def _build_visqol(self):
-        """Build ViSQOL using alternative methods."""
-        # This is a simplified approach - in practice you might:
-        # 1. Use pre-compiled binaries for common platforms
-        # 2. Use cmake instead of bazel
-        # 3. Use system libraries where possible
-        
-        print("Building ViSQOL from source...")
-        print("Note: This is a placeholder implementation.")
-        print("For production use, consider using pre-built wheels or Docker.")
 
 
 class ViSQOLInstall(install):

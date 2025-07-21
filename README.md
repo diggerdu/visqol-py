@@ -19,6 +19,30 @@ A Python wrapper for Google's ViSQOL (Virtual Speech Quality Objective Listener)
 pip install git+https://github.com/diggerdu/visqol-py.git
 ```
 
+**⚠️ Important**: The installation will attempt to build the native ViSQOL library automatically. If this fails (due to missing dependencies like Bazel), it will fall back to a Python-only implementation that provides reasonable approximations.
+
+### For Best Results (Native ViSQOL)
+To get the most accurate results, ensure you have build dependencies:
+
+**Linux/Mac:**
+```bash
+# Install system dependencies first
+sudo apt-get install git build-essential  # Ubuntu/Debian
+# or
+brew install git  # macOS
+
+# Then install the package (will auto-build native library)
+pip install git+https://github.com/diggerdu/visqol-py.git
+```
+
+**Manual Native Build:**
+```bash
+git clone https://github.com/diggerdu/visqol-py.git
+cd visqol-py
+python build_native.py  # Build native library manually
+pip install -e .        # Install package
+```
+
 ### Development Installation
 ```bash
 git clone https://github.com/diggerdu/visqol-py.git

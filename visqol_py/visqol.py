@@ -79,17 +79,30 @@ class ViSQOL:
     def _check_native_availability(self) -> bool:
         """Check if native ViSQOL implementation is available."""
         try:
-            # Try to import the native ViSQOL library
-            from visqol import visqol_lib_py
-            from visqol.pb2 import visqol_config_pb2
+            # Try to import the native ViSQOL library from our built package
+            import visqol_py.visqol_lib_py
+            import visqol_py.pb2.visqol_config_py_pb2
+            import visqol_py.pb2.similarity_result_py_pb2
             return True
         except ImportError:
-            return False
+            try:
+                # Fallback to system-wide installation
+                from visqol import visqol_lib_py
+                from visqol.pb2 import visqol_config_pb2
+                return True
+            except ImportError:
+                return False
     
     def _init_native(self):
         """Initialize native ViSQOL implementation."""
-        from visqol import visqol_lib_py
-        from visqol.pb2 import visqol_config_pb2
+        try:
+            # Try to use our built version first
+            import visqol_py.visqol_lib_py as visqol_lib_py
+            import visqol_py.pb2.visqol_config_py_pb2 as visqol_config_pb2
+        except ImportError:
+            # Fall back to system installation
+            from visqol import visqol_lib_py
+            from visqol.pb2 import visqol_config_pb2
         
         self._config = visqol_config_pb2.VisqolConfig()
         
