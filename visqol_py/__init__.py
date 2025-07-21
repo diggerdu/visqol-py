@@ -1,6 +1,6 @@
 """ViSQOL-Py: Python wrapper for ViSQOL audio quality metrics."""
 
-__version__ = "3.3.3"
+__version__ = "3.3.4"
 __author__ = "Google Research (Original), Wrapper by Community"
 
 from .visqol import ViSQOL, ViSQOLMode, ViSQOLResult

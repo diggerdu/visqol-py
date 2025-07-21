@@ -16,54 +16,57 @@ from setuptools import setup, find_packages, Extension
 from setuptools.command.build_ext import build_ext
 from setuptools.command.install import install
 from setuptools.command.develop import develop
+from setuptools.command.build_py import build_py
 import tempfile
+
+
+def _build_native_library():
+    """Build native ViSQOL library - shared function."""
+    try:
+        print("🚀 Building native ViSQOL library...")
+        
+        result = subprocess.run([
+            sys.executable, 'build_native.py'
+        ], capture_output=True, text=True, timeout=1800)
+        
+        if result.returncode == 0:
+            print("✅ Native ViSQOL library built successfully!")
+            return True
+        else:
+            print("❌ Native build failed.")
+            print("Build output:", result.stdout[-500:] if result.stdout else "None")
+            print("Build errors:", result.stderr[-500:] if result.stderr else "None")
+            raise RuntimeError("Native ViSQOL build failed. This package requires native library.")
+                
+    except subprocess.TimeoutExpired:
+        print("❌ Native build timed out.")
+        raise RuntimeError("Native ViSQOL build timed out. This package requires native library.")
+    except Exception as e:
+        print(f"❌ Could not build native ViSQOL: {e}")
+        raise RuntimeError(f"Native ViSQOL build failed: {e}. This package requires native library.")
+
+
+class ViSQOLBuildPy(build_py):
+    """Custom build_py command that triggers native build."""
+    
+    def run(self):
+        # Build native library first - this runs during wheel creation
+        _build_native_library()
+        build_py.run(self)
 
 
 class ViSQOLBuildExt(build_ext):
     """Custom build extension that handles ViSQOL compilation."""
     
     def run(self):
-        # Check if we can use pre-built binaries first
-        if self._try_prebuilt():
-            return
-        
-        # Fall back to building from source
-        self._build_from_source()
-    
-    def _try_prebuilt(self):
-        """Try to use pre-built binaries if available."""
-        # For now, we'll focus on building from source
-        # In a real implementation, you might include pre-built wheels
-        return False
-    
-    def _build_from_source(self):
-        """Build ViSQOL from source using build script."""
+        # Also try to build during build_ext
         try:
-            print("Attempting to build native ViSQOL library...")
-            
-            # Run the build script
-            import subprocess
-            result = subprocess.run([
-                sys.executable, 'build_native.py'
-            ], capture_output=True, text=True, timeout=1800)  # 30 minute timeout
-            
-            if result.returncode == 0:
-                print("✅ Native ViSQOL library built successfully!")
-                print("The package will use native implementation when available.")
-            else:
-                print("❌ Native build failed.")
-                if result.stdout:
-                    print("Build output:", result.stdout[-500:])  # Last 500 chars
-                if result.stderr:
-                    print("Build errors:", result.stderr[-500:])
-                raise RuntimeError("Native ViSQOL build failed. This package requires native library.")
-                    
-        except subprocess.TimeoutExpired:
-            print("❌ Native build timed out.")
-            raise RuntimeError("Native ViSQOL build timed out. This package requires native library.")
+            _build_native_library()
         except Exception as e:
-            print(f"❌ Could not build native ViSQOL: {e}")
-            raise RuntimeError(f"Native ViSQOL build failed: {e}. This package requires native library.")
+            print(f"Warning: Native build in build_ext failed: {e}")
+        
+        # Continue with normal build_ext (even if no real extensions)
+        build_ext.run(self)
     
 
 
@@ -72,32 +75,11 @@ class ViSQOLInstall(install):
     
     def run(self):
         # Build native library before install
-        self._build_native_library()
-        install.run(self)
-    
-    def _build_native_library(self):
-        """Build native ViSQOL library."""
         try:
-            print("🚀 Building native ViSQOL library during installation...")
-            
-            result = subprocess.run([
-                sys.executable, 'build_native.py'
-            ], capture_output=True, text=True, timeout=1800)
-            
-            if result.returncode == 0:
-                print("✅ Native ViSQOL library built successfully!")
-            else:
-                print("❌ Native build failed.")
-                print("Build output:", result.stdout[-500:] if result.stdout else "None")
-                print("Build errors:", result.stderr[-500:] if result.stderr else "None")
-                raise RuntimeError("Native ViSQOL build failed. This package requires native library.")
-                    
-        except subprocess.TimeoutExpired:
-            print("❌ Native build timed out.")
-            raise RuntimeError("Native ViSQOL build timed out. This package requires native library.")
+            _build_native_library()
         except Exception as e:
-            print(f"❌ Could not build native ViSQOL: {e}")
-            raise RuntimeError(f"Native ViSQOL build failed: {e}. This package requires native library.")
+            print(f"Warning: Native build in install failed: {e}")
+        install.run(self)
 
 
 class ViSQOLDevelop(develop):
@@ -105,37 +87,13 @@ class ViSQOLDevelop(develop):
     
     def run(self):
         # Build native library before develop
-        self._build_native_library()
+        _build_native_library()
         develop.run(self)
-    
-    def _build_native_library(self):
-        """Build native ViSQOL library."""
-        try:
-            print("🚀 Building native ViSQOL library during development installation...")
-            
-            result = subprocess.run([
-                sys.executable, 'build_native.py'
-            ], capture_output=True, text=True, timeout=1800)
-            
-            if result.returncode == 0:
-                print("✅ Native ViSQOL library built successfully!")
-            else:
-                print("❌ Native build failed.")
-                print("Build output:", result.stdout[-500:] if result.stdout else "None")
-                print("Build errors:", result.stderr[-500:] if result.stderr else "None")
-                raise RuntimeError("Native ViSQOL build failed. This package requires native library.")
-                    
-        except subprocess.TimeoutExpired:
-            print("❌ Native build timed out.")
-            raise RuntimeError("Native ViSQOL build timed out. This package requires native library.")
-        except Exception as e:
-            print(f"❌ Could not build native ViSQOL: {e}")
-            raise RuntimeError(f"Native ViSQOL build failed: {e}. This package requires native library.")
 
 
 setup(
     name="visqol-py",
-    version="3.3.3",
+    version="3.3.4",
     author="Google Research (Original), Wrapper by Community",
     author_email="",
     description="Python wrapper for ViSQOL audio quality metrics",
@@ -192,6 +150,7 @@ setup(
     },
     include_package_data=True,
     cmdclass={
+        "build_py": ViSQOLBuildPy,
         "build_ext": ViSQOLBuildExt,
         "install": ViSQOLInstall,
         "develop": ViSQOLDevelop,
