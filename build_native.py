@@ -18,7 +18,7 @@ from pathlib import Path
 
 def check_system_requirements():
     """Check if system has required tools."""
-    print("Checking system requirements...")
+    print("Checking system requirements...", flush=True)
     
     required_tools = ['git', 'python3']
     missing_tools = []
@@ -28,16 +28,16 @@ def check_system_requirements():
             missing_tools.append(tool)
     
     if missing_tools:
-        print(f"Missing required tools: {', '.join(missing_tools)}")
+        print(f"Missing required tools: {', '.join(missing_tools)}", flush=True)
         return False
     
-    print("✅ System requirements satisfied")
+    print("✅ System requirements satisfied", flush=True)
     return True
 
 
 def install_bazelisk(install_dir):
     """Install Bazelisk (Bazel launcher)."""
-    print("Installing Bazelisk...")
+    print("Installing Bazelisk...", flush=True)
     
     system = platform.system().lower()
     arch = platform.machine().lower()
@@ -65,19 +65,19 @@ def install_bazelisk(install_dir):
     
     bazel_path = os.path.join(install_dir, binary_name)
     
-    print(f"Downloading from: {url}")
+    print(f"Downloading from: {url}", flush=True)
     urllib.request.urlretrieve(url, bazel_path)
     
     if system != 'windows':
         os.chmod(bazel_path, 0o755)
     
-    print(f"✅ Bazelisk installed to {bazel_path}")
+    print(f"✅ Bazelisk installed to {bazel_path}", flush=True)
     return bazel_path
 
 
 def clone_visqol(work_dir):
     """Clone the ViSQOL repository."""
-    print("Cloning ViSQOL repository...")
+    print("Cloning ViSQOL repository...", flush=True)
     
     visqol_dir = os.path.join(work_dir, 'visqol')
     
@@ -88,58 +88,58 @@ def clone_visqol(work_dir):
             visqol_dir
         ], check=True, capture_output=True, text=True)
         
-        print(f"✅ ViSQOL cloned to {visqol_dir}")
+        print(f"✅ ViSQOL cloned to {visqol_dir}", flush=True)
         return visqol_dir
         
     except subprocess.CalledProcessError as e:
-        print(f"❌ Failed to clone ViSQOL: {e}")
+        print(f"❌ Failed to clone ViSQOL: {e}", flush=True)
         if e.stderr:
-            print(f"Error output: {e.stderr}")
+            print(f"Error output: {e.stderr}", flush=True)
         raise
 
 
 def build_visqol(visqol_dir, bazel_path):
     """Build ViSQOL using Bazel."""
-    print("Building ViSQOL with Bazel...")
-    print(f"ViSQOL directory: {visqol_dir}")
-    print(f"Bazel path: {bazel_path}")
+    print("Building ViSQOL with Bazel...", flush=True)
+    print(f"ViSQOL directory: {visqol_dir}", flush=True)
+    print(f"Bazel path: {bazel_path}", flush=True)
     
     original_dir = os.getcwd()
     
     try:
         os.chdir(visqol_dir)
-        print(f"Changed to directory: {os.getcwd()}")
+        print(f"Changed to directory: {os.getcwd()}", flush=True)
         
         # Set up environment
         env = os.environ.copy()
         env['PATH'] = f"{os.path.dirname(bazel_path)}:{env['PATH']}"
         
         # First, let's sync external dependencies
-        print("🔄 Syncing external dependencies...")
+        print("🔄 Syncing external dependencies...", flush=True)
         sync_cmd = [bazel_path, 'sync', '--noenable_bzlmod', '--enable_workspace']
         sync_result = subprocess.run(sync_cmd, env=env, timeout=300)
         
         if sync_result.returncode == 0:
-            print("✅ Dependencies synced successfully")
+            print("✅ Dependencies synced successfully", flush=True)
         else:
-            print("⚠️ Dependency sync had issues, but continuing...")
+            print("⚠️ Dependency sync had issues, but continuing...", flush=True)
         
         # Now let's check what Bazel targets are available
-        print("🔍 Querying available Bazel targets...")
+        print("🔍 Querying available Bazel targets...", flush=True)
         query_cmd = [bazel_path, 'query', '--noenable_bzlmod', '--enable_workspace', '//...']
         result = subprocess.run(query_cmd, env=env, capture_output=True, text=True, timeout=60)  # Keep query output captured for parsing
         
         if result.returncode == 0:
-            print("Available targets:")
+            print("Available targets:", flush=True)
             targets = result.stdout.strip().split('\n')
             for target in targets[:20]:  # Show first 20 targets
-                print(f"  {target}")
+                print(f"  {target}", flush=True)
             if len(targets) > 20:
-                print(f"  ... and {len(targets) - 20} more targets")
+                print(f"  ... and {len(targets) - 20} more targets", flush=True)
         else:
-            print("⚠️ Could not query targets, proceeding with build...")
-            print(f"Query stdout: {result.stdout}")
-            print(f"Query stderr: {result.stderr}")
+            print("⚠️ Could not query targets, proceeding with build...", flush=True)
+            print(f"Query stdout: {result.stdout}", flush=True)
+            print(f"Query stderr: {result.stderr}", flush=True)
         
         # Build commands - let's try simpler targets first
         # For Bazel 8+ compatibility, we need to disable bzlmod and force WORKSPACE usage
@@ -156,14 +156,14 @@ def build_visqol(visqol_dir, bazel_path):
         ]
         
         for cmd in build_commands:
-            print(f"🔨 Running: {' '.join(cmd)}")
-            print("📝 Real-time output:")
+            print(f"🔨 Running: {' '.join(cmd)}", flush=True)
+            print("📝 Real-time output:", flush=True)
             result = subprocess.run(cmd, env=env, timeout=1200)  # 20 minute timeout, show output in real-time
             
-            print(f"\nCommand completed with return code: {result.returncode}")
+            print(f"\nCommand completed with return code: {result.returncode}", flush=True)
             
             if result.returncode != 0:
-                print(f"❌ Build command failed: {' '.join(cmd)}")
+                print(f"❌ Build command failed: {' '.join(cmd)}", flush=True)
                 
                 # Try alternative targets with WORKSPACE mode and verbose output
                 alternative_commands = [
@@ -176,25 +176,25 @@ def build_visqol(visqol_dir, bazel_path):
                 
                 success = False
                 for alt_cmd in alternative_commands:
-                    print(f"🔄 Trying alternative: {' '.join(alt_cmd)}")
-                    print("📝 Real-time alternative output:")
+                    print(f"🔄 Trying alternative: {' '.join(alt_cmd)}", flush=True)
+                    print("📝 Real-time alternative output:", flush=True)
                     alt_result = subprocess.run(alt_cmd, env=env, timeout=1200)
                     
-                    print(f"\nAlternative completed with return code: {alt_result.returncode}")
+                    print(f"\nAlternative completed with return code: {alt_result.returncode}", flush=True)
                     
                     if alt_result.returncode == 0:
-                        print("✅ Alternative build succeeded!")
+                        print("✅ Alternative build succeeded!", flush=True)
                         success = True
                         break
                 
                 if not success:
-                    print("❌ All build attempts failed")
+                    print("❌ All build attempts failed", flush=True)
                     raise subprocess.CalledProcessError(result.returncode, cmd)
         
-        print("✅ ViSQOL built successfully")
+        print("✅ ViSQOL built successfully", flush=True)
         
     except subprocess.TimeoutExpired as e:
-        print(f"❌ Build timed out: {e}")
+        print(f"❌ Build timed out: {e}", flush=True)
         raise
     finally:
         os.chdir(original_dir)
@@ -202,25 +202,25 @@ def build_visqol(visqol_dir, bazel_path):
 
 def copy_built_files(visqol_dir, target_dir):
     """Copy built files to package directory."""
-    print("📁 Copying built files...")
-    print(f"Source directory: {visqol_dir}")
-    print(f"Target directory: {target_dir}")
+    print("📁 Copying built files...", flush=True)
+    print(f"Source directory: {visqol_dir}", flush=True)
+    print(f"Target directory: {target_dir}", flush=True)
     
     bazel_bin = os.path.join(visqol_dir, 'bazel-bin')
-    print(f"Bazel-bin directory: {bazel_bin}")
+    print(f"Bazel-bin directory: {bazel_bin}", flush=True)
     
     # List contents of bazel-bin to see what was actually built
     if os.path.exists(bazel_bin):
-        print("📂 Contents of bazel-bin:")
+        print("📂 Contents of bazel-bin:", flush=True)
         for root, dirs, files in os.walk(bazel_bin):
             level = root.replace(bazel_bin, '').count(os.sep)
             indent = ' ' * 2 * level
-            print(f"{indent}{os.path.basename(root)}/")
+            print(f"{indent}{os.path.basename(root)}/", flush=True)
             subindent = ' ' * 2 * (level + 1)
             for file in files:
-                print(f"{subindent}{file}")
+                print(f"{subindent}{file}", flush=True)
     else:
-        print("❌ bazel-bin directory not found!")
+        print("❌ bazel-bin directory not found!", flush=True)
         return False
     
     # Create target directories
@@ -230,7 +230,7 @@ def copy_built_files(visqol_dir, target_dir):
     
     model_dir.mkdir(parents=True, exist_ok=True)
     pb2_dir.mkdir(parents=True, exist_ok=True)
-    print(f"Created directories: {model_dir}, {pb2_dir}")
+    print(f"Created directories: {model_dir}, {pb2_dir}", flush=True)
     
     files_copied = 0
     
@@ -251,16 +251,16 @@ def copy_built_files(visqol_dir, target_dir):
     
     if so_file_found:
         shutil.copy2(so_file_found, target_dir / 'visqol_py')
-        print(f"✅ Copied Python library: {so_file_found}")
+        print(f"✅ Copied Python library: {so_file_found}", flush=True)
         files_copied += 1
     else:
-        print("⚠️ Python library (.so file) not found in any expected location")
+        print("⚠️ Python library (.so file) not found in any expected location", flush=True)
         # Search for any .so files
-        print("🔍 Searching for .so files:")
+        print("🔍 Searching for .so files:", flush=True)
         for root, dirs, files in os.walk(bazel_bin):
             for file in files:
                 if file.endswith('.so'):
-                    print(f"  Found .so file: {os.path.join(root, file)}")
+                    print(f"  Found .so file: {os.path.join(root, file)}", flush=True)
     
     # Look for protobuf files in various locations
     possible_pb_locations = [
@@ -280,29 +280,29 @@ def copy_built_files(visqol_dir, target_dir):
             src = os.path.join(bazel_bin, location, pb_file)
             if os.path.exists(src):
                 shutil.copy2(src, pb2_dir / pb_file)
-                print(f"✅ Copied protobuf: {pb_file}")
+                print(f"✅ Copied protobuf: {pb_file}", flush=True)
                 files_copied += 1
                 found = True
                 break
         
         if not found:
-            print(f"⚠️ Protobuf file not found: {pb_file}")
+            print(f"⚠️ Protobuf file not found: {pb_file}", flush=True)
     
     # Copy model files
     model_src = os.path.join(visqol_dir, 'model')
-    print(f"Looking for model files in: {model_src}")
+    print(f"Looking for model files in: {model_src}", flush=True)
     
     if os.path.exists(model_src):
-        print("📂 Contents of model directory:")
+        print("📂 Contents of model directory:", flush=True)
         for item in os.listdir(model_src):
-            print(f"  {item}")
+            print(f"  {item}", flush=True)
             src_path = os.path.join(model_src, item)
             if os.path.isfile(src_path) and item.endswith(('.tflite', '.txt', '.model')):
                 shutil.copy2(src_path, model_dir)
-                print(f"✅ Copied model: {item}")
+                print(f"✅ Copied model: {item}", flush=True)
                 files_copied += 1
     else:
-        print("⚠️ Model directory not found")
+        print("⚠️ Model directory not found", flush=True)
     
     # Create __init__.py files if they don't exist
     for init_dir in [pb2_dir, model_dir]:
@@ -310,17 +310,17 @@ def copy_built_files(visqol_dir, target_dir):
         if not init_file.exists():
             init_file.write_text('# ViSQOL generated files\n')
     
-    print(f"✅ Copied {files_copied} files")
+    print(f"✅ Copied {files_copied} files", flush=True)
     return files_copied > 0
 
 
 def main():
     """Main build function."""
-    print("🚀 Building ViSQOL Native Library")
-    print("=" * 50)
+    print("🚀 Building ViSQOL Native Library", flush=True)
+    print("=" * 50, flush=True)
     
     if not check_system_requirements():
-        print("❌ System requirements not met")
+        print("❌ System requirements not met", flush=True)
         return False
     
     target_dir = os.getcwd()
@@ -332,7 +332,7 @@ def main():
                 bazel_path = install_bazelisk(work_dir)
             else:
                 bazel_path = 'bazel'
-                print("✅ Using system Bazel")
+                print("✅ Using system Bazel", flush=True)
             
             # Clone and build ViSQOL
             visqol_dir = clone_visqol(work_dir)
@@ -342,14 +342,14 @@ def main():
             success = copy_built_files(visqol_dir, target_dir)
             
             if success:
-                print("🎉 Native ViSQOL build completed successfully!")
+                print("🎉 Native ViSQOL build completed successfully!", flush=True)
                 return True
             else:
-                print("⚠️  Build completed but no files were copied")
+                print("⚠️  Build completed but no files were copied", flush=True)
                 return False
                 
         except Exception as e:
-            print(f"❌ Build failed: {e}")
+            print(f"❌ Build failed: {e}", flush=True)
             import traceback
             traceback.print_exc()
             return False

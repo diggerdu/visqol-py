@@ -22,27 +22,34 @@ import tempfile
 
 def _build_native_library():
     """Build native ViSQOL library - shared function."""
+    import sys
+    import os
+    
     try:
-        print("🚀 Building native ViSQOL library...")
-        print("This may take several minutes...")
+        print("🚀 Building native ViSQOL library...", flush=True)
+        print("This may take several minutes...", flush=True)
+        
+        # Force unbuffered output to see progress in real-time during pip install
+        env = os.environ.copy()
+        env['PYTHONUNBUFFERED'] = '1'
         
         result = subprocess.run([
-            sys.executable, 'build_native.py'
-        ], capture_output=False, text=True, timeout=3600)  # Show output in real-time, 1 hour timeout
+            sys.executable, '-u', 'build_native.py'  # -u for unbuffered output
+        ], env=env, timeout=3600)  # 1 hour timeout, direct output to terminal
         
         if result.returncode == 0:
-            print("✅ Native ViSQOL library built successfully!")
+            print("✅ Native ViSQOL library built successfully!", flush=True)
             return True
         else:
-            print("❌ Native build failed.")
-            print(f"Exit code: {result.returncode}")
+            print("❌ Native build failed.", flush=True)
+            print(f"Exit code: {result.returncode}", flush=True)
             raise RuntimeError("Native ViSQOL build failed. This package requires native library.")
                 
     except subprocess.TimeoutExpired:
-        print("❌ Native build timed out after 1 hour.")
+        print("❌ Native build timed out after 1 hour.", flush=True)
         raise RuntimeError("Native ViSQOL build timed out. This package requires native library.")
     except Exception as e:
-        print(f"❌ Could not build native ViSQOL: {e}")
+        print(f"❌ Could not build native ViSQOL: {e}", flush=True)
         raise RuntimeError(f"Native ViSQOL build failed: {e}. This package requires native library.")
 
 
