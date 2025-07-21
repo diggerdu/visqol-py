@@ -26,8 +26,14 @@ def _build_native_library():
     import os
     
     try:
-        print("🚀 Building native ViSQOL library...", flush=True)
-        print("This may take several minutes...", flush=True)
+        print("\n" + "="*60, flush=True)
+        print("🚀 ViSQOL-Py: Building native ViSQOL library", flush=True)
+        print("📋 This process may take 5-15 minutes and includes:", flush=True)
+        print("   • Downloading compatible Bazel version", flush=True)
+        print("   • Cloning Google's ViSQOL repository", flush=True) 
+        print("   • Compiling C++ code with TensorFlow dependencies", flush=True)
+        print("   • Installing compiled library", flush=True)
+        print("="*60, flush=True)
         
         # Force unbuffered output to see progress in real-time during pip install
         env = os.environ.copy()
@@ -35,7 +41,7 @@ def _build_native_library():
         
         result = subprocess.run([
             sys.executable, '-u', 'build_native.py'  # -u for unbuffered output
-        ], env=env, timeout=3600)  # 1 hour timeout, direct output to terminal
+        ], env=env, timeout=3600, stdout=None, stderr=None)  # Direct output to terminal, no capture
         
         if result.returncode == 0:
             print("✅ Native ViSQOL library built successfully!", flush=True)

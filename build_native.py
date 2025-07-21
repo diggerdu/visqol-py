@@ -72,7 +72,7 @@ def install_compatible_bazel(install_dir):
     
     bazel_path = os.path.join(install_dir, binary_name)
     
-    print(f"Downloading Bazel {bazel_version} from: {url}", flush=True)
+    print(f"⬇️  Downloading Bazel {bazel_version} from: {url}", flush=True)
     urllib.request.urlretrieve(url, bazel_path)
     
     if system != 'windows':
@@ -84,7 +84,7 @@ def install_compatible_bazel(install_dir):
 
 def clone_visqol(work_dir):
     """Clone the ViSQOL repository."""
-    print("Cloning ViSQOL repository...", flush=True)
+    print("📥 Cloning ViSQOL repository...", flush=True)
     
     visqol_dir = os.path.join(work_dir, 'visqol')
     
@@ -107,7 +107,7 @@ def clone_visqol(work_dir):
 
 def build_visqol(visqol_dir, bazel_path):
     """Build ViSQOL using Bazel."""
-    print("Building ViSQOL with Bazel...", flush=True)
+    print("🔨 Building ViSQOL with Bazel (this may take several minutes)...", flush=True)
     print(f"ViSQOL directory: {visqol_dir}", flush=True)
     print(f"Bazel path: {bazel_path}", flush=True)
     
@@ -339,6 +339,12 @@ def copy_built_files(visqol_dir, target_dir):
 def main():
     """Main build function."""
     print("🚀 Building ViSQOL Native Library", flush=True)
+    print("=" * 50, flush=True)
+    print("📋 This process includes:", flush=True)
+    print("   • Downloading Bazel 7.6.0", flush=True)
+    print("   • Cloning ViSQOL repository", flush=True)
+    print("   • Compiling C++ code (may take 5-15 minutes)", flush=True)
+    print("   • Copying built files", flush=True)
     print("=" * 50, flush=True)
     
     if not check_system_requirements():
