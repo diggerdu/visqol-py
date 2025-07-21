@@ -117,19 +117,17 @@ def build_visqol(visqol_dir, bazel_path):
         # First, let's sync external dependencies
         print("🔄 Syncing external dependencies...")
         sync_cmd = [bazel_path, 'sync', '--noenable_bzlmod', '--enable_workspace']
-        sync_result = subprocess.run(sync_cmd, env=env, capture_output=True, text=True, timeout=300)
+        sync_result = subprocess.run(sync_cmd, env=env, timeout=300)
         
         if sync_result.returncode == 0:
             print("✅ Dependencies synced successfully")
         else:
             print("⚠️ Dependency sync had issues, but continuing...")
-            print(f"Sync stdout: {sync_result.stdout}")
-            print(f"Sync stderr: {sync_result.stderr}")
         
         # Now let's check what Bazel targets are available
         print("🔍 Querying available Bazel targets...")
         query_cmd = [bazel_path, 'query', '--noenable_bzlmod', '--enable_workspace', '//...']
-        result = subprocess.run(query_cmd, env=env, capture_output=True, text=True, timeout=60)
+        result = subprocess.run(query_cmd, env=env, capture_output=True, text=True, timeout=60)  # Keep query output captured for parsing
         
         if result.returncode == 0:
             print("Available targets:")
@@ -146,37 +144,43 @@ def build_visqol(visqol_dir, bazel_path):
         # Build commands - let's try simpler targets first
         # For Bazel 8+ compatibility, we need to disable bzlmod and force WORKSPACE usage
         build_commands = [
-            # Try to build the python bindings directly with WORKSPACE mode
-            [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '--enable_workspace', '//python:visqol_lib_py'],
+            # Try to build the python bindings directly with WORKSPACE mode and maximum verbosity
+            [bazel_path, 'build', '-c', 'opt', 
+             '--verbose_failures', 
+             '--noenable_bzlmod', 
+             '--enable_workspace',
+             '--subcommands',  # Show all subcommands being executed
+             '--verbose_explanations',  # Show detailed explanations
+             '--sandbox_debug',  # Show sandbox debugging info
+             '//python:visqol_lib_py'],
         ]
         
         for cmd in build_commands:
             print(f"🔨 Running: {' '.join(cmd)}")
-            result = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=1200)  # 20 minute timeout
+            print("📝 Real-time output:")
+            result = subprocess.run(cmd, env=env, timeout=1200)  # 20 minute timeout, show output in real-time
             
-            print(f"Command completed with return code: {result.returncode}")
-            print(f"📝 Full stdout:\n{result.stdout}")
-            print(f"📝 Full stderr:\n{result.stderr}")
+            print(f"\nCommand completed with return code: {result.returncode}")
             
             if result.returncode != 0:
                 print(f"❌ Build command failed: {' '.join(cmd)}")
                 
-                # Try alternative targets with WORKSPACE mode
+                # Try alternative targets with WORKSPACE mode and verbose output
                 alternative_commands = [
-                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '--enable_workspace', '//python:all'],
-                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '--enable_workspace', '//:all'],
+                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '--enable_workspace', '--subcommands', '//python:all'],
+                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '--enable_workspace', '--subcommands', '//:all'],
                     # Also try building specific targets
-                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '--enable_workspace', '//python:visqol_lib_py.so'],
-                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '--enable_workspace', '//src:visqol_api'],
+                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '--enable_workspace', '--subcommands', '//python:visqol_lib_py.so'],
+                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '--enable_workspace', '--subcommands', '//src:visqol_api'],
                 ]
                 
                 success = False
                 for alt_cmd in alternative_commands:
                     print(f"🔄 Trying alternative: {' '.join(alt_cmd)}")
-                    alt_result = subprocess.run(alt_cmd, env=env, capture_output=True, text=True, timeout=1200)
+                    print("📝 Real-time alternative output:")
+                    alt_result = subprocess.run(alt_cmd, env=env, timeout=1200)
                     
-                    print(f"Alternative stdout:\n{alt_result.stdout}")
-                    print(f"Alternative stderr:\n{alt_result.stderr}")
+                    print(f"\nAlternative completed with return code: {alt_result.returncode}")
                     
                     if alt_result.returncode == 0:
                         print("✅ Alternative build succeeded!")
