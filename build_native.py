@@ -50,10 +50,14 @@ def install_compatible_bazel(install_dir):
     else:
         raise RuntimeError(f"Unsupported architecture: {arch}")
     
-    # Use Bazel 6.5.0 which is compatible with ViSQOL's dependencies
-    bazel_version = "6.5.0"
+    # Use Bazel 7.6.0 which should be compatible with ViSQOL's dependencies
+    bazel_version = "7.6.0"
     
-    # Determine download URL
+    # Fix architecture naming for Bazel downloads
+    if arch == 'amd64':
+        arch = 'x86_64'
+    
+    # Determine download URL - use correct Bazel asset naming
     if system == 'linux':
         url = f"https://github.com/bazelbuild/bazel/releases/download/{bazel_version}/bazel-{bazel_version}-linux-{arch}"
         binary_name = 'bazel'
