@@ -114,9 +114,21 @@ def build_visqol(visqol_dir, bazel_path):
         env = os.environ.copy()
         env['PATH'] = f"{os.path.dirname(bazel_path)}:{env['PATH']}"
         
-        # First, let's check what Bazel targets are available
+        # First, let's sync external dependencies
+        print("🔄 Syncing external dependencies...")
+        sync_cmd = [bazel_path, 'sync', '--noenable_bzlmod']
+        sync_result = subprocess.run(sync_cmd, env=env, capture_output=True, text=True, timeout=300)
+        
+        if sync_result.returncode == 0:
+            print("✅ Dependencies synced successfully")
+        else:
+            print("⚠️ Dependency sync had issues, but continuing...")
+            print(f"Sync stdout: {sync_result.stdout}")
+            print(f"Sync stderr: {sync_result.stderr}")
+        
+        # Now let's check what Bazel targets are available
         print("🔍 Querying available Bazel targets...")
-        query_cmd = [bazel_path, 'query', '//...']
+        query_cmd = [bazel_path, 'query', '--noenable_bzlmod', '//...']
         result = subprocess.run(query_cmd, env=env, capture_output=True, text=True, timeout=60)
         
         if result.returncode == 0:
@@ -132,9 +144,10 @@ def build_visqol(visqol_dir, bazel_path):
             print(f"Query stderr: {result.stderr}")
         
         # Build commands - let's try simpler targets first
+        # For Bazel 8+ compatibility, we need to disable bzlmod and force WORKSPACE usage
         build_commands = [
-            # Try to build the python bindings directly
-            [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '//python:visqol_lib_py'],
+            # Try to build the python bindings directly with WORKSPACE mode
+            [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '//python:visqol_lib_py'],
         ]
         
         for cmd in build_commands:
@@ -148,10 +161,13 @@ def build_visqol(visqol_dir, bazel_path):
             if result.returncode != 0:
                 print(f"❌ Build command failed: {' '.join(cmd)}")
                 
-                # Try alternative targets
+                # Try alternative targets with WORKSPACE mode
                 alternative_commands = [
-                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '//python:all'],
-                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '//:all'],
+                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '//python:all'],
+                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '//:all'],
+                    # Also try building specific targets
+                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '//python:visqol_lib_py.so'],
+                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--noenable_bzlmod', '//src:visqol_api'],
                 ]
                 
                 success = False
