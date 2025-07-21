@@ -4,10 +4,10 @@ A Python wrapper for Google's ViSQOL (Virtual Speech Quality Objective Listener)
 
 ## Features
 
-- **Easy Installation**: Install directly with `pip install git+https://github.com/diggerdu/visqol-py.git`
-- **No Bazel Required**: Automatic dependency handling without manual Bazel installation
+- **Direct Installation**: Install directly with `pip install git+https://github.com/diggerdu/visqol-py.git`
+- **Automatic Build**: Automatic Bazel and ViSQOL library building during installation
 - **Native NumPy Support**: Process audio arrays directly without file I/O
-- **Fallback Implementation**: Works even without native ViSQOL compiled binaries
+- **Native Performance**: Uses official ViSQOL implementation for accurate results
 - **Command Line Interface**: Easy-to-use CLI for batch processing
 - **Python API**: Clean Python interface for integration into your projects
 - **Dual Mode Support**: Both Audio (48kHz) and Speech (16kHz) modes
@@ -19,7 +19,7 @@ A Python wrapper for Google's ViSQOL (Virtual Speech Quality Objective Listener)
 pip install git+https://github.com/diggerdu/visqol-py.git
 ```
 
-**⚠️ Important**: The installation will attempt to build the native ViSQOL library automatically. If this fails (due to missing dependencies like Bazel), it will fall back to a Python-only implementation that provides reasonable approximations.
+**⚠️ Important**: The installation requires building the native ViSQOL library. If this fails (due to missing dependencies like Bazel), the installation will fail. Ensure you have build dependencies installed.
 
 ### For Best Results (Native ViSQOL)
 To get the most accurate results, ensure you have build dependencies:
@@ -200,14 +200,15 @@ print(f"MOS-LQO: {result.moslqo:.3f}")
 
 See [NUMPY_API.md](NUMPY_API.md) for comprehensive examples and [numpy_array_example.py](numpy_array_example.py) for a complete demonstration.
 
-## Native vs Fallback Implementation
+## Native Implementation
 
-This wrapper attempts to use the native ViSQOL implementation when available, falling back to an approximation method when not:
+This wrapper uses the official ViSQOL implementation with native C++ libraries:
 
-- **Native**: Full ViSQOL implementation with official models
-- **Fallback**: Spectral similarity approximation using librosa
+- **Full ViSQOL accuracy**: Official implementation with all models and algorithms
+- **High performance**: Optimized C++ code for fast processing
+- **Complete feature support**: All ViSQOL functionality available
 
-The fallback implementation provides reasonable estimates but may not match official ViSQOL scores exactly.
+The package requires successful native library compilation to function.
 
 ## Requirements
 
@@ -243,7 +244,7 @@ Check out the [examples.py](visqol_py/examples.py) file for comprehensive usage 
 ## Troubleshooting
 
 ### ImportError: Native ViSQOL not available
-This is normal - the package will use the fallback implementation. For full compatibility, install the original ViSQOL package.
+This means the native library build failed. Check your build dependencies (git, bazel) and network connection, then reinstall the package.
 
 ### Audio Loading Errors
 Ensure audio files are in supported formats and not corrupted. Use `librosa.load()` to test file loading.

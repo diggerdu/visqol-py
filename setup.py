@@ -50,19 +50,19 @@ class ViSQOLBuildExt(build_ext):
                 print("✅ Native ViSQOL library built successfully!")
                 print("The package will use native implementation when available.")
             else:
-                print("⚠️ Native build failed, using fallback implementation.")
+                print("❌ Native build failed.")
                 if result.stdout:
                     print("Build output:", result.stdout[-500:])  # Last 500 chars
                 if result.stderr:
                     print("Build errors:", result.stderr[-500:])
+                raise RuntimeError("Native ViSQOL build failed. This package requires native library.")
                     
         except subprocess.TimeoutExpired:
-            print("⚠️ Native build timed out, using fallback implementation.")
+            print("❌ Native build timed out.")
+            raise RuntimeError("Native ViSQOL build timed out. This package requires native library.")
         except Exception as e:
-            print(f"⚠️ Could not build native ViSQOL: {e}")
-            print("Using fallback implementation.")
-            
-        print("Package installation will continue with Python fallback implementation.")
+            print(f"❌ Could not build native ViSQOL: {e}")
+            raise RuntimeError(f"Native ViSQOL build failed: {e}. This package requires native library.")
     
 
 
