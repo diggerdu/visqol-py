@@ -341,23 +341,23 @@ def copy_built_files(visqol_dir, target_dir):
     ]
     
     pb_files = [
-        'similarity_result_py_pb2.py',
-        'visqol_config_py_pb2.py'
+        ('similarity_result_pb2.py', 'similarity_result_py_pb2.py'),  # (source, target)
+        ('visqol_config_pb2.py', 'visqol_config_py_pb2.py')
     ]
     
-    for pb_file in pb_files:
+    for src_file, target_file in pb_files:
         found = False
         for location in possible_pb_locations:
-            src = os.path.join(bazel_bin, location, pb_file)
+            src = os.path.join(bazel_bin, location, src_file)
             if os.path.exists(src):
-                shutil.copy2(src, pb2_dir / pb_file)
-                print(f"✅ Copied protobuf: {pb_file}", flush=True)
+                shutil.copy2(src, pb2_dir / target_file)
+                print(f"✅ Copied protobuf: {src_file} -> {target_file}", flush=True)
                 files_copied += 1
                 found = True
                 break
         
         if not found:
-            print(f"⚠️ Protobuf file not found: {pb_file}", flush=True)
+            print(f"⚠️ Protobuf file not found: {src_file}", flush=True)
     
     # Copy model files
     model_src = os.path.join(visqol_dir, 'model')
