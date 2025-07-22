@@ -157,16 +157,22 @@ def build_visqol(visqol_dir, bazel_path, work_dir):
         os.makedirs(temp_bazel_dir, exist_ok=True)
         
         # Add Bazel flags for NFS compatibility and clean builds
-        # Use minimal flags for Bazel 6.x compatibility
+        # Use minimal flags for Bazel 6.x compatibility with TensorFlow experimental features
         bazel_startup_flags = [
             f'--output_base={temp_bazel_dir}',  # Use our own output base
+        ]
+        
+        # Build flags for TensorFlow compatibility  
+        bazel_build_flags = [
+            '--experimental_repo_remote_exec',  # Enable remotable parameter for TensorFlow
+            '--define=no_tensorflow_py_deps=true',  # Reduce TensorFlow Python dependencies
         ]
         
         print(f"🛠️ Using clean Bazel output directory: {temp_bazel_dir}", flush=True)
         
         # First, let's sync external dependencies
         print("🔄 Syncing external dependencies...", flush=True)
-        sync_cmd = [bazel_path] + bazel_startup_flags + ['sync']
+        sync_cmd = [bazel_path] + bazel_startup_flags + ['sync'] + bazel_build_flags
         sync_result = subprocess.run(sync_cmd, env=env, timeout=300)
         
         if sync_result.returncode == 0:
@@ -176,7 +182,7 @@ def build_visqol(visqol_dir, bazel_path, work_dir):
         
         # Now let's check what Bazel targets are available
         print("🔍 Querying available Bazel targets...", flush=True)
-        query_cmd = [bazel_path] + bazel_startup_flags + ['query', '//...']
+        query_cmd = [bazel_path] + bazel_startup_flags + ['query'] + bazel_build_flags + ['//...']
         result = subprocess.run(query_cmd, env=env, capture_output=True, text=True, timeout=60)  # Keep query output captured for parsing
         
         if result.returncode == 0:
@@ -194,8 +200,9 @@ def build_visqol(visqol_dir, bazel_path, work_dir):
         # Build commands - let's try simpler targets first
         # For Bazel 8+ compatibility, we need to disable bzlmod and force WORKSPACE usage
         build_commands = [
-            # Try to build the python bindings with clean output base
-            [bazel_path] + bazel_startup_flags + ['build', '-c', 'opt', 
+            # Try to build the python bindings with clean output base and TensorFlow compatibility flags
+            [bazel_path] + bazel_startup_flags + ['build'] + bazel_build_flags + [
+             '-c', 'opt', 
              '--verbose_failures', 
              '--subcommands',  # Show all subcommands being executed
              '//python:visqol_lib_py'],
@@ -211,13 +218,13 @@ def build_visqol(visqol_dir, bazel_path, work_dir):
             if result.returncode != 0:
                 print(f"❌ Build command failed: {' '.join(cmd)}", flush=True)
                 
-                # Try alternative targets with clean output base
+                # Try alternative targets with clean output base and TensorFlow compatibility flags
                 alternative_commands = [
-                    [bazel_path] + bazel_startup_flags + ['build', '-c', 'opt', '--verbose_failures', '--subcommands', '//python:all'],
-                    [bazel_path] + bazel_startup_flags + ['build', '-c', 'opt', '--verbose_failures', '--subcommands', '//:all'],
+                    [bazel_path] + bazel_startup_flags + ['build'] + bazel_build_flags + ['-c', 'opt', '--verbose_failures', '--subcommands', '//python:all'],
+                    [bazel_path] + bazel_startup_flags + ['build'] + bazel_build_flags + ['-c', 'opt', '--verbose_failures', '--subcommands', '//:all'],
                     # Also try building specific targets
-                    [bazel_path] + bazel_startup_flags + ['build', '-c', 'opt', '--verbose_failures', '--subcommands', '//python:visqol_lib_py.so'],
-                    [bazel_path] + bazel_startup_flags + ['build', '-c', 'opt', '--verbose_failures', '--subcommands', '//src:visqol_api'],
+                    [bazel_path] + bazel_startup_flags + ['build'] + bazel_build_flags + ['-c', 'opt', '--verbose_failures', '--subcommands', '//python:visqol_lib_py.so'],
+                    [bazel_path] + bazel_startup_flags + ['build'] + bazel_build_flags + ['-c', 'opt', '--verbose_failures', '--subcommands', '//src:visqol_api'],
                 ]
                 
                 success = False
