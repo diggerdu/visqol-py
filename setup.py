@@ -72,11 +72,8 @@ class ViSQOLBuildExt(build_ext):
     """Custom build extension that handles ViSQOL compilation."""
     
     def run(self):
-        # Also try to build during build_ext
-        try:
-            _build_native_library()
-        except Exception as e:
-            print(f"Warning: Native build in build_ext failed: {e}")
+        # Native build is REQUIRED - don't catch exceptions
+        _build_native_library()
         
         # Continue with normal build_ext (even if no real extensions)
         build_ext.run(self)
@@ -87,11 +84,8 @@ class ViSQOLInstall(install):
     """Custom install command."""
     
     def run(self):
-        # Build native library before install
-        try:
-            _build_native_library()
-        except Exception as e:
-            print(f"Warning: Native build in install failed: {e}")
+        # Native build is REQUIRED - don't catch exceptions
+        _build_native_library()
         install.run(self)
 
 
