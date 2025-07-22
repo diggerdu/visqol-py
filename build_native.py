@@ -105,7 +105,7 @@ def clone_visqol(work_dir):
         raise
 
 
-def build_visqol(visqol_dir, bazel_path):
+def build_visqol(visqol_dir, bazel_path, work_dir):
     """Build ViSQOL using Bazel."""
     print("🔨 Building ViSQOL with Bazel (this may take several minutes)...", flush=True)
     print(f"ViSQOL directory: {visqol_dir}", flush=True)
@@ -121,9 +121,40 @@ def build_visqol(visqol_dir, bazel_path):
         env = os.environ.copy()
         env['PATH'] = f"{os.path.dirname(bazel_path)}:{env['PATH']}"
         
+        # Clean corrupted Bazel cache if it exists
+        import getpass
+        username = getpass.getuser()
+        bazel_cache_patterns = [
+            f"/home/{username}/.cache/bazel",
+            f"~/.cache/bazel",
+            f"/tmp/bazel_{username}",
+        ]
+        
+        for cache_pattern in bazel_cache_patterns:
+            cache_path = os.path.expanduser(cache_pattern)
+            if os.path.exists(cache_path):
+                print(f"🧹 Cleaning Bazel cache: {cache_path}", flush=True)
+                try:
+                    shutil.rmtree(cache_path)
+                    print(f"✅ Cleaned Bazel cache: {cache_path}", flush=True)
+                except Exception as e:
+                    print(f"⚠️ Could not clean {cache_path}: {e}", flush=True)
+        
+        # Force Bazel to use a clean temporary directory for this build
+        temp_bazel_dir = os.path.join(work_dir, 'bazel_output')
+        os.makedirs(temp_bazel_dir, exist_ok=True)
+        
+        # Add Bazel flags for NFS compatibility and clean builds
+        bazel_startup_flags = [
+            f'--output_base={temp_bazel_dir}',  # Use our own output base
+            '--host_jvm_args=-Xmx2g',  # Limit memory usage
+        ]
+        
+        print(f"🛠️ Using clean Bazel output directory: {temp_bazel_dir}", flush=True)
+        
         # First, let's sync external dependencies
         print("🔄 Syncing external dependencies...", flush=True)
-        sync_cmd = [bazel_path, 'sync']  # Bazel 6 doesn't need bzlmod/workspace flags
+        sync_cmd = [bazel_path] + bazel_startup_flags + ['sync']
         sync_result = subprocess.run(sync_cmd, env=env, timeout=300)
         
         if sync_result.returncode == 0:
@@ -133,7 +164,7 @@ def build_visqol(visqol_dir, bazel_path):
         
         # Now let's check what Bazel targets are available
         print("🔍 Querying available Bazel targets...", flush=True)
-        query_cmd = [bazel_path, 'query', '//...']  # Simple query for Bazel 6
+        query_cmd = [bazel_path] + bazel_startup_flags + ['query', '//...']
         result = subprocess.run(query_cmd, env=env, capture_output=True, text=True, timeout=60)  # Keep query output captured for parsing
         
         if result.returncode == 0:
@@ -151,8 +182,8 @@ def build_visqol(visqol_dir, bazel_path):
         # Build commands - let's try simpler targets first
         # For Bazel 8+ compatibility, we need to disable bzlmod and force WORKSPACE usage
         build_commands = [
-            # Try to build the python bindings with Bazel 6 compatible flags
-            [bazel_path, 'build', '-c', 'opt', 
+            # Try to build the python bindings with clean output base
+            [bazel_path] + bazel_startup_flags + ['build', '-c', 'opt', 
              '--verbose_failures', 
              '--subcommands',  # Show all subcommands being executed
              '//python:visqol_lib_py'],
@@ -168,13 +199,13 @@ def build_visqol(visqol_dir, bazel_path):
             if result.returncode != 0:
                 print(f"❌ Build command failed: {' '.join(cmd)}", flush=True)
                 
-                # Try alternative targets with Bazel 6 compatible flags
+                # Try alternative targets with clean output base
                 alternative_commands = [
-                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--subcommands', '//python:all'],
-                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--subcommands', '//:all'],
+                    [bazel_path] + bazel_startup_flags + ['build', '-c', 'opt', '--verbose_failures', '--subcommands', '//python:all'],
+                    [bazel_path] + bazel_startup_flags + ['build', '-c', 'opt', '--verbose_failures', '--subcommands', '//:all'],
                     # Also try building specific targets
-                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--subcommands', '//python:visqol_lib_py.so'],
-                    [bazel_path, 'build', '-c', 'opt', '--verbose_failures', '--subcommands', '//src:visqol_api'],
+                    [bazel_path] + bazel_startup_flags + ['build', '-c', 'opt', '--verbose_failures', '--subcommands', '//python:visqol_lib_py.so'],
+                    [bazel_path] + bazel_startup_flags + ['build', '-c', 'opt', '--verbose_failures', '--subcommands', '//src:visqol_api'],
                 ]
                 
                 success = False
@@ -355,6 +386,18 @@ def main():
     
     with tempfile.TemporaryDirectory() as work_dir:
         try:
+            # Clean any corrupt Bazel cache first (common on NFS systems)
+            print("🧹 Cleaning Bazel cache to avoid NFS/corruption issues...", flush=True)
+            try:
+                import getpass
+                username = getpass.getuser()
+                bazel_cache = os.path.expanduser("~/.cache/bazel")
+                if os.path.exists(bazel_cache):
+                    shutil.rmtree(bazel_cache)
+                    print(f"✅ Removed potentially corrupt Bazel cache: {bazel_cache}", flush=True)
+            except Exception as e:
+                print(f"⚠️ Could not clean Bazel cache: {e}", flush=True)
+            
             # Always install compatible Bazel version instead of using system Bazel
             # This avoids version compatibility issues with Bazel 8+
             print("ℹ️ Installing compatible Bazel version instead of using system Bazel", flush=True)
@@ -362,7 +405,7 @@ def main():
             
             # Clone and build ViSQOL
             visqol_dir = clone_visqol(work_dir)
-            build_visqol(visqol_dir, bazel_path)
+            build_visqol(visqol_dir, bazel_path, work_dir)
             
             # Copy files to package
             success = copy_built_files(visqol_dir, target_dir)
