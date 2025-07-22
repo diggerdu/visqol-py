@@ -165,7 +165,6 @@ def build_visqol(visqol_dir, bazel_path, work_dir):
         # Build flags for TensorFlow compatibility  
         bazel_build_flags = [
             '--experimental_repo_remote_exec',  # Enable remotable parameter for TensorFlow
-            '--define=no_tensorflow_py_deps=true',  # Reduce TensorFlow Python dependencies
         ]
         
         print(f"🛠️ Using clean Bazel output directory: {temp_bazel_dir}", flush=True)
