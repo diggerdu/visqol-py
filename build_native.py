@@ -50,8 +50,9 @@ def install_compatible_bazel(install_dir):
     else:
         raise RuntimeError(f"Unsupported architecture: {arch}")
     
-    # Use Bazel 7.6.0 which should be compatible with ViSQOL's dependencies
-    bazel_version = "7.6.0"
+    # Use Bazel 6.4.0 which should be compatible with ViSQOL's dependencies  
+    # Newer versions (7.x, 8.x) have incompatible changes with TensorFlow WORKSPACE
+    bazel_version = "6.4.0"
     
     # Fix architecture naming for Bazel downloads
     if arch == 'amd64':
@@ -72,7 +73,7 @@ def install_compatible_bazel(install_dir):
     
     bazel_path = os.path.join(install_dir, binary_name)
     
-    print(f"⬇️  Downloading Bazel {bazel_version} from: {url}", flush=True)
+    print(f"⬇️  Downloading compatible Bazel {bazel_version} from: {url}", flush=True)
     urllib.request.urlretrieve(url, bazel_path)
     
     if system != 'windows':
@@ -145,9 +146,9 @@ def build_visqol(visqol_dir, bazel_path, work_dir):
         os.makedirs(temp_bazel_dir, exist_ok=True)
         
         # Add Bazel flags for NFS compatibility and clean builds
+        # Use minimal flags for Bazel 6.x compatibility
         bazel_startup_flags = [
             f'--output_base={temp_bazel_dir}',  # Use our own output base
-            '--host_jvm_args=-Xmx2g',  # Limit memory usage
         ]
         
         print(f"🛠️ Using clean Bazel output directory: {temp_bazel_dir}", flush=True)
@@ -372,7 +373,7 @@ def main():
     print("🚀 Building ViSQOL Native Library", flush=True)
     print("=" * 50, flush=True)
     print("📋 This process includes:", flush=True)
-    print("   • Downloading Bazel 7.6.0", flush=True)
+    print(f"   • Downloading Bazel 6.4.0 (compatible version)", flush=True)
     print("   • Cloning ViSQOL repository", flush=True)
     print("   • Compiling C++ code (may take 5-15 minutes)", flush=True)
     print("   • Copying built files", flush=True)
