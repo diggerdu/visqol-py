@@ -122,6 +122,17 @@ def build_visqol(visqol_dir, bazel_path, work_dir):
         env = os.environ.copy()
         env['PATH'] = f"{os.path.dirname(bazel_path)}:{env['PATH']}"
         
+        # Ensure Python can find numpy for Bazel TensorFlow configuration
+        import sys
+        try:
+            import numpy
+            print(f"✅ NumPy found: {numpy.__version__} at {numpy.__file__}", flush=True)
+        except ImportError:
+            print("⚠️ Installing NumPy for Bazel TensorFlow configuration...", flush=True)
+            subprocess.run([sys.executable, '-m', 'pip', 'install', 'numpy'], check=True, env=env)
+            import numpy
+            print(f"✅ NumPy installed: {numpy.__version__}", flush=True)
+        
         # Clean corrupted Bazel cache if it exists
         import getpass
         username = getpass.getuser()
