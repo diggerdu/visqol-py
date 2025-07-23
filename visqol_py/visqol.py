@@ -10,18 +10,13 @@ import sys
 import warnings
 from enum import Enum
 from dataclasses import dataclass, field
-from typing import List, Optional, Union, Dict, Any
+from typing import List, Optional, Union, Dict, Any, Tuple
 from pathlib import Path
 
 import numpy as np
 
-try:
-    import soundfile as sf
-except ImportError as e:
-    raise ImportError(
-        "Required audio processing library not found. "
-        "Please install with: pip install soundfile"
-    ) from e
+import struct
+import wave
 
 
 class ViSQOLMode(Enum):
@@ -173,13 +168,9 @@ class ViSQOL:
         if isinstance(audio, np.ndarray):
             return audio.astype(np.float64)
         
-        # Load audio file using soundfile
+        # Load WAV file
         target_sr = self._config.audio.sample_rate
-        audio_data, orig_sr = sf.read(str(audio), always_2d=False)
-        
-        # Convert to mono if stereo
-        if len(audio_data.shape) > 1:
-            audio_data = np.mean(audio_data, axis=1)
+        audio_data, orig_sr = self._load_wav_file(str(audio))
         
         # Resample if needed (using simple linear interpolation)
         if orig_sr != target_sr:
@@ -265,3 +256,81 @@ class ViSQOL:
         resampled = np.interp(new_indices, orig_indices, audio)
         
         return resampled
+    
+    def _load_wav_file(self, file_path: str) -> Tuple[np.ndarray, int]:
+        """
+        Load WAV file using Python's built-in wave module.
+        
+        Args:
+            file_path: Path to WAV file
+            
+        Returns:
+            Tuple of (audio_data, sample_rate)
+        """
+        try:
+            with wave.open(file_path, 'rb') as wav_file:
+                # Get WAV file parameters
+                n_channels = wav_file.getnchannels()
+                sample_width = wav_file.getsampwidth()
+                sample_rate = wav_file.getframerate()
+                n_frames = wav_file.getnframes()
+                
+                # Read raw audio data
+                raw_audio = wav_file.readframes(n_frames)
+                
+                # Convert to numpy array based on sample width
+                if sample_width == 1:  # 8-bit
+                    audio_data = np.frombuffer(raw_audio, dtype=np.uint8)
+                    audio_data = (audio_data.astype(np.float32) - 128) / 128.0
+                elif sample_width == 2:  # 16-bit
+                    audio_data = np.frombuffer(raw_audio, dtype=np.int16)
+                    audio_data = audio_data.astype(np.float32) / 32768.0
+                elif sample_width == 3:  # 24-bit
+                    # Convert 24-bit to 32-bit integers
+                    audio_bytes = np.frombuffer(raw_audio, dtype=np.uint8)
+                    audio_data = []
+                    for i in range(0, len(audio_bytes), 3):
+                        # Convert 3 bytes to 24-bit signed integer
+                        sample = int.from_bytes(audio_bytes[i:i+3], 'little', signed=True)
+                        audio_data.append(sample)
+                    audio_data = np.array(audio_data, dtype=np.float32) / 8388608.0
+                elif sample_width == 4:  # 32-bit
+                    audio_data = np.frombuffer(raw_audio, dtype=np.int32)
+                    audio_data = audio_data.astype(np.float32) / 2147483648.0
+                else:
+                    raise ValueError(f"Unsupported sample width: {sample_width} bytes")
+                
+                # Convert to mono if stereo
+                if n_channels == 2:
+                    audio_data = audio_data.reshape(-1, 2)
+                    audio_data = np.mean(audio_data, axis=1)
+                elif n_channels > 2:
+                    audio_data = audio_data.reshape(-1, n_channels)
+                    audio_data = np.mean(audio_data, axis=1)
+                
+                return audio_data, sample_rate
+                
+        except Exception as e:
+            raise RuntimeError(f"Failed to load WAV file {file_path}: {e}")
+    
+    def _save_wav_file(self, audio_data: np.ndarray, file_path: str, sample_rate: int) -> None:
+        """
+        Save audio data as WAV file.
+        
+        Args:
+            audio_data: Audio data array
+            file_path: Output file path
+            sample_rate: Sample rate
+        """
+        try:
+            # Convert to 16-bit integers
+            audio_int16 = (audio_data * 32767).astype(np.int16)
+            
+            with wave.open(file_path, 'wb') as wav_file:
+                wav_file.setnchannels(1)  # Mono
+                wav_file.setsampwidth(2)  # 16-bit
+                wav_file.setframerate(sample_rate)
+                wav_file.writeframes(audio_int16.tobytes())
+                
+        except Exception as e:
+            raise RuntimeError(f"Failed to save WAV file {file_path}: {e}")

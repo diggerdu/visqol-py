@@ -110,7 +110,6 @@ setup(
     install_requires=[
         "numpy>=1.19.0",
         "scipy>=1.7.0",
-        "soundfile>=0.10.0",
         "protobuf>=3.19.0,<4.0.0",
     ],
     extras_require={
