@@ -66,7 +66,14 @@ visqol-py = "visqol_py.cli:main"
 packages = ["visqol_py"]
 
 [tool.setuptools.package-data]
-visqol_py = ["models/*.tflite", "models/*.txt", "data/*.wav"]
+visqol_py = [
+    "*.so",
+    "model/*.tflite", 
+    "model/*.txt", 
+    "model/*.model",
+    "pb2/*.py",
+    "data/*.wav"
+]
 
 [tool.black]
 line-length = 88

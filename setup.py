@@ -57,9 +57,15 @@ class CustomBuildPy(build_py):
         # Then run normal build_py
         super().run()
         
-        # Copy native library to build directory
+        # Copy native library and additional files to build directory
         build_lib = self.build_lib
         package_dir = os.path.join(build_lib, 'visqol_py')
+        
+        # Ensure subdirectories exist in build directory
+        model_build_dir = os.path.join(package_dir, 'model')
+        pb2_build_dir = os.path.join(package_dir, 'pb2')
+        os.makedirs(model_build_dir, exist_ok=True)
+        os.makedirs(pb2_build_dir, exist_ok=True)
         
         # Look for the built native library in multiple possible locations
         possible_so_locations = [
@@ -86,6 +92,28 @@ class CustomBuildPy(build_py):
                         full_path = os.path.join(root, file)
                         print(f"  Found: {full_path}", flush=True)
             raise RuntimeError(f"Native library visqol_lib_py.so not found after build")
+        
+        # Copy model and pb2 directories if they exist
+        source_model_dir = 'visqol_py/model'
+        source_pb2_dir = 'visqol_py/pb2'
+        
+        if os.path.exists(source_model_dir):
+            print(f"📁 Copying model files from {source_model_dir}", flush=True)
+            for item in os.listdir(source_model_dir):
+                src = os.path.join(source_model_dir, item)
+                dst = os.path.join(model_build_dir, item)
+                if os.path.isfile(src):
+                    shutil.copy2(src, dst)
+                    print(f"  ✅ Copied model: {item}", flush=True)
+        
+        if os.path.exists(source_pb2_dir):
+            print(f"📁 Copying pb2 files from {source_pb2_dir}", flush=True)
+            for item in os.listdir(source_pb2_dir):
+                src = os.path.join(source_pb2_dir, item)
+                dst = os.path.join(pb2_build_dir, item)
+                if os.path.isfile(src):
+                    shutil.copy2(src, dst)
+                    print(f"  ✅ Copied pb2: {item}", flush=True)
 
 
 class CustomBdistWheel(bdist_wheel):
@@ -149,9 +177,11 @@ setup(
     package_data={
         "visqol_py": [
             "*.so",  # Include native library
-            "models/*.tflite",
-            "models/*.txt", 
-            "data/*.wav",
+            "model/*.tflite",  # Correct path: model not models
+            "model/*.txt",     # Correct path: model not models
+            "model/*.model",   # Include .model files
+            "pb2/*.py",        # Include protobuf Python files
+            "data/*.wav",      # Optional test data
         ],
     },
     include_package_data=True,
