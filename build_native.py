@@ -318,6 +318,12 @@ def copy_built_files(visqol_dir, target_dir):
             shutil.copy2(so_file_found, target_so_path)
             print(f"✅ Copied Python library: {so_file_found} -> {target_so_path}", flush=True)
             files_copied += 1
+            
+            # Also copy to root directory for setup.py to find during wheel build
+            root_so_path = target_dir / 'visqol_lib_py.so'
+            shutil.copy2(so_file_found, root_so_path)
+            print(f"✅ Also copied to root: {root_so_path}", flush=True)
+            
         except Exception as e:
             print(f"⚠️ Failed to copy library: {e}", flush=True)
             # If copy fails, at least check if the target already exists and is valid
@@ -350,7 +356,16 @@ def copy_built_files(visqol_dir, target_dir):
         for location in possible_pb_locations:
             src = os.path.join(bazel_bin, location, src_file)
             if os.path.exists(src):
-                shutil.copy2(src, pb2_dir / target_file)
+                target_path = pb2_dir / target_file
+                # Remove existing file if it exists to avoid permission issues
+                if target_path.exists():
+                    try:
+                        target_path.chmod(0o644)
+                        target_path.unlink()
+                    except Exception as e:
+                        print(f"⚠️ Could not remove existing protobuf file: {e}", flush=True)
+                        
+                shutil.copy2(src, target_path)
                 print(f"✅ Copied protobuf: {src_file} -> {target_file}", flush=True)
                 files_copied += 1
                 found = True

@@ -61,14 +61,31 @@ class CustomBuildPy(build_py):
         build_lib = self.build_lib
         package_dir = os.path.join(build_lib, 'visqol_py')
         
-        # Look for the built native library
-        so_file = 'visqol_lib_py.so'
-        if os.path.exists(so_file):
-            print(f"📁 Copying {so_file} to {package_dir}", flush=True)
+        # Look for the built native library in multiple possible locations
+        possible_so_locations = [
+            'visqol_lib_py.so',  # Current directory
+            'visqol_py/visqol_lib_py.so',  # In package directory
+            os.path.join('visqol_py', 'visqol_lib_py.so'),  # Alternative path
+        ]
+        
+        so_file_found = None
+        for so_path in possible_so_locations:
+            if os.path.exists(so_path):
+                so_file_found = so_path
+                break
+        
+        if so_file_found:
+            print(f"📁 Copying {so_file_found} to {package_dir}", flush=True)
             os.makedirs(package_dir, exist_ok=True)
-            shutil.copy2(so_file, package_dir)
+            shutil.copy2(so_file_found, os.path.join(package_dir, 'visqol_lib_py.so'))
         else:
-            raise RuntimeError(f"Native library {so_file} not found after build")
+            print("🔍 Searching for .so files in current directory:", flush=True)
+            for root, dirs, files in os.walk('.'):
+                for file in files:
+                    if file.endswith('.so') and 'visqol' in file:
+                        full_path = os.path.join(root, file)
+                        print(f"  Found: {full_path}", flush=True)
+            raise RuntimeError(f"Native library visqol_lib_py.so not found after build")
 
 
 class CustomBdistWheel(bdist_wheel):
