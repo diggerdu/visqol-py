@@ -8,12 +8,11 @@ from typing import List, Tuple, Union, Optional
 import numpy as np
 
 try:
-    import librosa
     import soundfile as sf
 except ImportError as e:
     raise ImportError(
-        "Required audio processing libraries not found. "
-        "Please install with: pip install librosa soundfile"
+        "Required audio processing library not found. "
+        "Please install with: pip install soundfile"
     ) from e
 
 from .visqol import ViSQOLResult
@@ -25,7 +24,7 @@ def load_audio(
     mono: bool = True
 ) -> Tuple[np.ndarray, int]:
     """
-    Load audio file using librosa.
+    Load audio file using soundfile.
     
     Args:
         file_path: Path to audio file
@@ -35,8 +34,18 @@ def load_audio(
     Returns:
         Tuple of (audio_data, sample_rate)
     """
-    audio_data, sr = librosa.load(str(file_path), sr=sample_rate, mono=mono)
-    return audio_data, sr
+    audio_data, orig_sr = sf.read(str(file_path), always_2d=False)
+    
+    # Convert to mono if needed
+    if mono and len(audio_data.shape) > 1:
+        audio_data = np.mean(audio_data, axis=1)
+    
+    # Resample if needed
+    if sample_rate is not None and orig_sr != sample_rate:
+        audio_data = resample_audio(audio_data, orig_sr, sample_rate)
+        orig_sr = sample_rate
+    
+    return audio_data, orig_sr
 
 
 def save_audio(
@@ -157,9 +166,12 @@ def validate_audio_files(file_paths: List[str]) -> List[str]:
     for file_path in file_paths:
         if os.path.isfile(file_path):
             try:
-                # Try to load a small portion to validate format
-                librosa.load(file_path, sr=None, duration=0.1)
-                valid_paths.append(file_path)
+                # Try to read file info to validate format
+                info = sf.info(file_path)
+                if info.frames > 0:  # Valid audio file
+                    valid_paths.append(file_path)
+                else:
+                    print(f"Warning: Empty audio file: {file_path}")
             except Exception as e:
                 print(f"Warning: Could not load {file_path}: {e}")
         else:
@@ -174,7 +186,7 @@ def resample_audio(
     target_sr: int
 ) -> np.ndarray:
     """
-    Resample audio data.
+    Resample audio data using linear interpolation.
     
     Args:
         audio_data: Input audio data
@@ -187,7 +199,21 @@ def resample_audio(
     if orig_sr == target_sr:
         return audio_data
     
-    return librosa.resample(audio_data, orig_sr=orig_sr, target_sr=target_sr)
+    # Calculate resampling ratio
+    ratio = target_sr / orig_sr
+    
+    # Create new time indices
+    orig_length = len(audio_data)
+    new_length = int(orig_length * ratio)
+    
+    # Linear interpolation
+    orig_indices = np.linspace(0, orig_length - 1, orig_length)
+    new_indices = np.linspace(0, orig_length - 1, new_length)
+    
+    # Interpolate
+    resampled = np.interp(new_indices, orig_indices, audio_data)
+    
+    return resampled
 
 
 def compute_audio_stats(audio_data: np.ndarray, sample_rate: int) -> dict:

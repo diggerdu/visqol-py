@@ -16,12 +16,11 @@ from pathlib import Path
 import numpy as np
 
 try:
-    import librosa
     import soundfile as sf
 except ImportError as e:
     raise ImportError(
-        "Required audio processing libraries not found. "
-        "Please install with: pip install librosa soundfile"
+        "Required audio processing library not found. "
+        "Please install with: pip install soundfile"
     ) from e
 
 
@@ -174,9 +173,18 @@ class ViSQOL:
         if isinstance(audio, np.ndarray):
             return audio.astype(np.float64)
         
-        # For native implementation, we need to load with the exact sample rate
+        # Load audio file using soundfile
         target_sr = self._config.audio.sample_rate
-        audio_data, sr = librosa.load(str(audio), sr=target_sr, mono=True)
+        audio_data, orig_sr = sf.read(str(audio), always_2d=False)
+        
+        # Convert to mono if stereo
+        if len(audio_data.shape) > 1:
+            audio_data = np.mean(audio_data, axis=1)
+        
+        # Resample if needed (using simple linear interpolation)
+        if orig_sr != target_sr:
+            audio_data = self._resample_audio(audio_data, orig_sr, target_sr)
+        
         return audio_data.astype(np.float64)
     
     def measure_batch(
@@ -226,3 +234,34 @@ class ViSQOL:
                     result.degraded_path or '',
                     f"{result.moslqo:.6f}"
                 ])
+    
+    def _resample_audio(self, audio: np.ndarray, orig_sr: int, target_sr: int) -> np.ndarray:
+        """
+        Simple audio resampling using linear interpolation.
+        
+        Args:
+            audio: Input audio data
+            orig_sr: Original sample rate
+            target_sr: Target sample rate
+            
+        Returns:
+            Resampled audio data
+        """
+        if orig_sr == target_sr:
+            return audio
+        
+        # Calculate resampling ratio
+        ratio = target_sr / orig_sr
+        
+        # Create new time indices
+        orig_length = len(audio)
+        new_length = int(orig_length * ratio)
+        
+        # Linear interpolation
+        orig_indices = np.linspace(0, orig_length - 1, orig_length)
+        new_indices = np.linspace(0, orig_length - 1, new_length)
+        
+        # Interpolate
+        resampled = np.interp(new_indices, orig_indices, audio)
+        
+        return resampled
