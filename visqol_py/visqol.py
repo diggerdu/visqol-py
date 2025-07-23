@@ -103,13 +103,13 @@ class ViSQOL:
         self._config = visqol_config_pb2.VisqolConfig()
         
         if self.mode == ViSQOLMode.AUDIO:
-            self._config.audio.sample_rate = 48000
+            self._config.audio.sample_rate = 48000  # Default, will be updated per audio file
             self._config.options.use_speech_scoring = False
             self._config.options.use_lattice_model = False  # Not yet supported for audio mode
             self._config.options.search_window_radius = 60  # Default search window
             model_file = "libsvm_nu_svr_model.txt"
         else:  # SPEECH mode
-            self._config.audio.sample_rate = 16000
+            self._config.audio.sample_rate = 16000  # Default, will be updated based on input
             self._config.options.use_speech_scoring = True
             self._config.options.use_lattice_model = True  # Use lattice model by default
             self._config.options.detect_voice_activity = True  # Enable VAD for speech
@@ -118,12 +118,15 @@ class ViSQOL:
             model_file = "lattice_tcditugenmeetpackhref_ls2_nl60_lr12_bs2048_learn.005_ep2400_train1_7_raw.tflite"
         
         # Set model path
-        model_path = os.path.join(
+        self._model_path = os.path.join(
             os.path.dirname(visqol_lib_py.__file__), "model", model_file
         )
-        self._config.options.svr_model_path = model_path
+        self._config.options.svr_model_path = self._model_path
         
-        # Create API instance
+        # Store libs for later use
+        self._visqol_lib_py = visqol_lib_py
+        
+        # Create API instance with default config
         self._api = visqol_lib_py.VisqolApi()
         self._api.Create(self._config)
     
@@ -152,12 +155,15 @@ class ViSQOL:
         degraded: Union[str, np.ndarray, Path]
     ) -> ViSQOLResult:
         """Measure using native ViSQOL implementation."""
-        # Load audio if needed
-        ref_audio = self._load_audio_native(reference)
-        deg_audio = self._load_audio_native(degraded)
+        # Load audio and determine actual sample rate
+        ref_audio, actual_sr = self._load_audio_with_sr(reference)
+        deg_audio, _ = self._load_audio_with_sr(degraded)
+        
+        # Create API with correct sample rate if different from default
+        api_to_use = self._get_api_for_sample_rate(actual_sr)
         
         # Run ViSQOL
-        similarity_result = self._api.Measure(ref_audio, deg_audio)
+        similarity_result = api_to_use.Measure(ref_audio, deg_audio)
         
         # Convert to our result format
         return ViSQOLResult(
@@ -169,20 +175,68 @@ class ViSQOL:
             degraded_path=str(degraded) if isinstance(degraded, (str, Path)) else None,
         )
     
-    def _load_audio_native(self, audio: Union[str, np.ndarray, Path]) -> np.ndarray:
-        """Load audio for native implementation."""
+    def _get_api_for_sample_rate(self, sample_rate: int):
+        """Get or create API instance for specific sample rate."""
+        # If sample rate matches current config, use existing API
+        if sample_rate == self._config.audio.sample_rate:
+            return self._api
+        
+        # Create new API with correct sample rate
+        import visqol_py.pb2.visqol_config_py_pb2 as visqol_config_pb2
+        
+        config = visqol_config_pb2.VisqolConfig()
+        config.audio.sample_rate = sample_rate
+        
+        # Copy all options from original config
+        config.options.use_speech_scoring = self._config.options.use_speech_scoring
+        config.options.use_lattice_model = self._config.options.use_lattice_model
+        config.options.detect_voice_activity = self._config.options.detect_voice_activity
+        config.options.use_unscaled_speech_mos_mapping = self._config.options.use_unscaled_speech_mos_mapping
+        config.options.search_window_radius = self._config.options.search_window_radius
+        config.options.svr_model_path = self._model_path
+        
+        # Create new API instance
+        api = self._visqol_lib_py.VisqolApi()
+        api.Create(config)
+        return api
+    
+    def _load_audio_with_sr(self, audio: Union[str, np.ndarray, Path]) -> Tuple[np.ndarray, int]:
+        """Load audio and return both data and actual sample rate used."""
         if isinstance(audio, np.ndarray):
-            return audio.astype(np.float64)
+            # For numpy arrays, assume they match the default config sample rate
+            default_sr = 16000 if self.mode == ViSQOLMode.SPEECH else 48000
+            return audio.astype(np.float64), default_sr
         
         # Load WAV file
-        target_sr = self._config.audio.sample_rate
         audio_data, orig_sr = self._load_wav_file(str(audio))
         
-        # Resample if needed (using simple linear interpolation)
+        # Determine target sample rate
+        target_sr = self._get_target_sample_rate(orig_sr)
+        
+        # Resample if needed
         if orig_sr != target_sr:
             audio_data = self._resample_audio(audio_data, orig_sr, target_sr)
         
-        return audio_data.astype(np.float64)
+        return audio_data.astype(np.float64), target_sr
+    
+    
+    def _get_target_sample_rate(self, original_sr: int) -> int:
+        """
+        Determine target sample rate based on mode and original sample rate.
+        
+        This matches original ViSQOL behavior:
+        - Speech mode: Use original SR if >= 16kHz, otherwise upsample to 16kHz
+        - Audio mode: Always use 48kHz
+        """
+        if self.mode == ViSQOLMode.SPEECH:
+            # In speech mode, if original is already >= 16kHz, keep it
+            # This matches how original ViSQOL handles 48kHz files in speech mode
+            if original_sr >= 16000:
+                return original_sr
+            else:
+                return 16000
+        else:  # AUDIO mode
+            return 48000
     
     def measure_batch(
         self,
