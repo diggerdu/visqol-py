@@ -106,6 +106,7 @@ class ViSQOL:
             self._config.audio.sample_rate = 48000
             self._config.options.use_speech_scoring = False
             self._config.options.use_lattice_model = False  # Not yet supported for audio mode
+            self._config.options.search_window_radius = 60  # Default search window
             model_file = "libsvm_nu_svr_model.txt"
         else:  # SPEECH mode
             self._config.audio.sample_rate = 16000
@@ -113,6 +114,7 @@ class ViSQOL:
             self._config.options.use_lattice_model = True  # Use lattice model by default
             self._config.options.detect_voice_activity = True  # Enable VAD for speech
             self._config.options.use_unscaled_speech_mos_mapping = False  # Use scaled mapping (perfect NSIM -> MOS 5.0)
+            self._config.options.search_window_radius = 60  # Default search window radius
             model_file = "lattice_tcditugenmeetpackhref_ls2_nl60_lr12_bs2048_learn.005_ep2400_train1_7_raw.tflite"
         
         # Set model path
