@@ -3,6 +3,15 @@
 # It also may be useful to refer to TensorFlow .bazelrc for more details:
 # https://github.com/tensorflow/tensorflow/blob/master/.bazelrc
 
+# Force x86-64 Linux platform only - disable ARM and other platforms  
+build --platforms=@bazel_tools//platforms:host_platform
+build --host_platform=@bazel_tools//platforms:host_platform
+build --cpu=k8
+build --host_cpu=k8
+
+# Disable ARM compiler configuration
+build --define=framework_shared_object=false
+
 # Optimizations used for TF Serving release builds.
 build:release --copt=-mavx
 build:release --copt=-msse4.2

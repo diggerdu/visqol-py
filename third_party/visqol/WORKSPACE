@@ -103,6 +103,38 @@ versions.check("3.7.2")
 load("@org_tensorflow//tensorflow:workspace2.bzl", workspace2 = "workspace")
 workspace2()
 
+# Force x86-64 only build - disable all other platform toolchains
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+# Create dummy repositories to replace ARM and other platform configs
+http_archive(
+    name = "local_config_arm_compiler",
+    build_file_content = """
+# Dummy ARM compiler config - disabled for x86-64 only builds
+""",
+    urls = ["https://github.com/bazelbuild/bazel/archive/refs/tags/6.4.0.tar.gz"],
+    strip_prefix = "bazel-6.4.0",
+)
+
+http_archive(
+    name = "local_config_download_clang", 
+    build_file_content = """
+# Dummy clang download config - using system compiler
+""",
+    urls = ["https://github.com/bazelbuild/bazel/archive/refs/tags/6.4.0.tar.gz"],
+    strip_prefix = "bazel-6.4.0",
+)
+
+# Force platform constraints to x86-64 Linux only
+load("@bazel_tools//platforms:platforms.bzl", "platform")
+platform(
+    name = "x86_64_linux",
+    constraint_values = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+)
+
 # Custom import/workarounds for workspace1.bzl.
 # Load the grpc deps which resolve the protoc error: "every rule of type _generate_pb2_src implicitly depends upon the target '//external:protocol_compiler', but this target could not be found because of: no such target"
 load("@com_github_grpc_grpc//bazel:grpc_deps.bzl", "grpc_deps")
