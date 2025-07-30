@@ -4,12 +4,12 @@
 # https://github.com/tensorflow/tensorflow/blob/master/.bazelrc
 
 # Force x86-64 Linux platform only - disable ARM and other platforms  
-build --platforms=@bazel_tools//platforms:host_platform
-build --host_platform=@bazel_tools//platforms:host_platform
 build --cpu=k8
 build --host_cpu=k8
+build --compilation_mode=opt
 
-# Disable ARM compiler configuration
+# Disable ARM and other cross-compilation
+build --define=with_default_optimizations=true
 build --define=framework_shared_object=false
 
 # Optimizations used for TF Serving release builds.

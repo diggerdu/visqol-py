@@ -112,8 +112,8 @@ http_archive(
     build_file_content = """
 # Dummy ARM compiler config - disabled for x86-64 only builds
 """,
-    urls = ["https://github.com/bazelbuild/bazel/archive/refs/tags/6.4.0.tar.gz"],
-    strip_prefix = "bazel-6.4.0",
+    urls = ["https://github.com/bazelbuild/bazel/archive/refs/tags/5.1.0.tar.gz"],
+    strip_prefix = "bazel-5.1.0",
 )
 
 http_archive(
@@ -121,19 +121,11 @@ http_archive(
     build_file_content = """
 # Dummy clang download config - using system compiler
 """,
-    urls = ["https://github.com/bazelbuild/bazel/archive/refs/tags/6.4.0.tar.gz"],
-    strip_prefix = "bazel-6.4.0",
+    urls = ["https://github.com/bazelbuild/bazel/archive/refs/tags/5.1.0.tar.gz"],
+    strip_prefix = "bazel-5.1.0",
 )
 
-# Force platform constraints to x86-64 Linux only
-load("@bazel_tools//platforms:platforms.bzl", "platform")
-platform(
-    name = "x86_64_linux",
-    constraint_values = [
-        "@platforms//os:linux",
-        "@platforms//cpu:x86_64",
-    ],
-)
+# Platform constraints are handled by .bazelrc instead of WORKSPACE for Bazel 5.1.0 compatibility
 
 # Custom import/workarounds for workspace1.bzl.
 # Load the grpc deps which resolve the protoc error: "every rule of type _generate_pb2_src implicitly depends upon the target '//external:protocol_compiler', but this target could not be found because of: no such target"
