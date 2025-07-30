@@ -1,0 +1,7 @@
+/bazel-bin
+/bazel-genfiles
+/bazel-out
+/bazel-testlogs
+/bazel-visqol
+/visqol_lib_py
+.vscode
