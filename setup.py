@@ -24,7 +24,7 @@ def _build_native_library():
     print("🚀 ViSQOL-Py: Building native ViSQOL library", flush=True)
     print("📋 This process may take 5-15 minutes and includes:", flush=True)
     print("   • Downloading compatible Bazel version", flush=True)
-    print("   • Cloning Google's ViSQOL repository", flush=True) 
+    print("   • Using local ViSQOL source code (no external clone needed)", flush=True) 
     print("   • Compiling C++ code with TensorFlow dependencies", flush=True)
     print("   • Installing compiled library", flush=True)
     print("="*60, flush=True)
@@ -155,7 +155,7 @@ setup(
     install_requires=[
         "numpy>=1.19.0",
         "scipy>=1.7.0",
-        "protobuf>=3.19.0,<4.0.0",
+        "protobuf>=3.19.0",
     ],
     extras_require={
         "dev": [

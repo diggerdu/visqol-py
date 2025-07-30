@@ -20,7 +20,7 @@ def check_system_requirements():
     """Check if system has required tools."""
     print("Checking system requirements...", flush=True)
     
-    required_tools = ['git', 'python3']
+    required_tools = ['python3']
     missing_tools = []
     
     for tool in required_tools:
@@ -84,25 +84,28 @@ def install_compatible_bazel(install_dir):
 
 
 def clone_visqol(work_dir):
-    """Clone the ViSQOL repository."""
-    print("📥 Cloning ViSQOL repository...", flush=True)
+    """Use local ViSQOL repository from third_party directory."""
+    print("📁 Using local ViSQOL repository...", flush=True)
     
+    # Find the path to our local ViSQOL copy
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    local_visqol_dir = os.path.join(script_dir, 'third_party', 'visqol')
+    
+    if not os.path.exists(local_visqol_dir):
+        raise RuntimeError(f"Local ViSQOL directory not found at {local_visqol_dir}")
+    
+    # Copy to work directory to avoid modifying original
     visqol_dir = os.path.join(work_dir, 'visqol')
     
     try:
-        subprocess.run([
-            'git', 'clone', '--depth=1', '--recursive',
-            'https://github.com/google/visqol.git',
-            visqol_dir
-        ], check=True, capture_output=True, text=True)
+        shutil.copytree(local_visqol_dir, visqol_dir, 
+                       ignore=shutil.ignore_patterns('.git', '__pycache__', '*.pyc'))
         
-        print(f"✅ ViSQOL cloned to {visqol_dir}", flush=True)
+        print(f"✅ ViSQOL copied to {visqol_dir}", flush=True)
         return visqol_dir
         
-    except subprocess.CalledProcessError as e:
-        print(f"❌ Failed to clone ViSQOL: {e}", flush=True)
-        if e.stderr:
-            print(f"Error output: {e.stderr}", flush=True)
+    except Exception as e:
+        print(f"❌ Failed to copy local ViSQOL: {e}", flush=True)
         raise
 
 
