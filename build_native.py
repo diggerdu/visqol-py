@@ -50,9 +50,9 @@ def install_compatible_bazel(install_dir):
     else:
         raise RuntimeError(f"Unsupported architecture: {arch}")
     
-    # Use Bazel 6.4.0 which should be compatible with ViSQOL's dependencies  
-    # Newer versions (7.x, 8.x) have incompatible changes with TensorFlow WORKSPACE
-    bazel_version = "6.4.0"
+    # Use Bazel 5.1.0 for better compatibility with older TensorFlow dependencies
+    # Newer versions have incompatible changes with TensorFlow WORKSPACE
+    bazel_version = "5.1.0"
     
     # Fix architecture naming for Bazel downloads
     if arch == 'amd64':
@@ -408,7 +408,7 @@ def main():
     print("🚀 Building ViSQOL Native Library", flush=True)
     print("=" * 50, flush=True)
     print("📋 This process includes:", flush=True)
-    print(f"   • Downloading Bazel 6.4.0 (compatible version)", flush=True)
+    print(f"   • Downloading Bazel 5.1.0 (compatible version)", flush=True)
     print("   • Cloning ViSQOL repository", flush=True)
     print("   • Compiling C++ code (may take 5-15 minutes)", flush=True)
     print("   • Copying built files", flush=True)
